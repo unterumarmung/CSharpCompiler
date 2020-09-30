@@ -3,6 +3,14 @@
 %option yylineno
 
 %{
+// Remove warnings from flex
+#ifdef _MSC_VER
+#pragma warning( push, 0 )
+#pragma warning( disable : 6011 )
+#pragma warning( disable : 26819 )
+#pragma warning( disable : 6387 )
+#endif // _MSC_VER
+
 #include <string>
 #include <charconv>
 #include <iostream>
@@ -62,7 +70,7 @@ void PrintIntegerLiteral(const std::string& type, int integer) {
 %{
 std::string currentStringLiteral;
 std::string currentComment;
-std::int64_t currentInteger;
+int currentInteger;
 char currentCharacter;
 %}
 
@@ -272,6 +280,9 @@ while                                   { PrintKeyword(yytext); }
                                         }
 
 %%
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif // _MSC_VER
 
 int main(int argc, char** argv) 
 {

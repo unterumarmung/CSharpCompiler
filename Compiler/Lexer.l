@@ -172,7 +172,7 @@ char currentCharacter;
                                             currentStringLiteral += yytext;
                                         }
 <VERBATIM_STRING_LITERAL>\n             {
-                                            // Do nothing
+                                            currentStringLiteral += "\n";
                                         }
 <VERBATIM_STRING_LITERAL>\"             {
                                             PrintStringLiteral(currentStringLiteral);

@@ -1266,7 +1266,7 @@ case 26:
 YY_RULE_SETUP
 #line 175 "Lexer.l"
 {
-                                            // Do nothing
+                                            currentStringLiteral += "\n";
                                         }
 	YY_BREAK
 case 27:

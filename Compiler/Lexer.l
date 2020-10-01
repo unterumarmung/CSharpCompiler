@@ -23,7 +23,7 @@ void Print(const std::string& message)
     std::cout << message << std::endl;
 }
 
-void PrintError(const std::string& errorMessage, int line = -1) 
+void PrintError(const std::string& errorMessage, const int line = -1) 
 {
     std::cerr << errorMessage << std::endl;
     if (line >= 0)
@@ -54,7 +54,7 @@ void PrintAriphmeticOperator(const std::string& o) {
     Print("Found ariphmetic operator: " + o);
 }
 
-void PrintIntegerLiteral(const std::string& type, int integer) {
+void PrintIntegerLiteral(const std::string& type, const int integer) {
     Print("Found " + type + " integer literal: " + std::to_string(integer));
 }
 
@@ -71,6 +71,7 @@ std::string currentStringLiteral;
 std::string currentComment;
 int currentInteger;
 char currentCharacter;
+char buffer[10];
 %}
 
 "/*"                                    {
@@ -109,8 +110,13 @@ char currentCharacter;
                                             currentStringLiteral += yytext;
                                         }
 <STRING_LITERAL>\\x[0-9a-fA-F]{1,4}     {
-                                            std::sscanf(yytext, "%x", &currentInteger);
-                                            currentStringLiteral += static_cast<char>(currentInteger);
+                                            std::fill(std::begin(buffer), std::end(buffer), 0);
+                                            std::copy(yytext, yytext + yyleng, buffer);
+                                            // Replace \ to 0. So std::sscanf can actually read this
+                                            // \x74 --> 0x74
+                                            buffer[0] = '0'; 
+                                            std::sscanf(buffer, "%x", &currentInteger);
+                                            currentStringLiteral = static_cast<char>(currentInteger);
                                         }
 <STRING_LITERAL>\\n                     {
                                             currentStringLiteral += "\n";

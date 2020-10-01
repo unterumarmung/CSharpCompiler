@@ -27,35 +27,35 @@ void PrintError(const std::string& errorMessage, int line = -1)
 {
     std::cerr << errorMessage << std::endl;
     if (line >= 0)
-        std::cerr << "Номер Строки: " << line << std::endl;
+        std::cerr << "Line: " << line << std::endl;
     std::cerr << std::endl;
 }
 
 void PrintComment(const std::string& comment) 
 {
-    Print("Найден комментарий со следующим содержимым:");
+    Print("Found multiline comment:");
     Print("\"" + comment + "\"");
 }
 
 void PrintStringLiteral(const std::string& literal) {
-    Print("Найден строковый литерал со следующим содержимым:");
+    Print("Found string literal:");
     Print("\"" + literal + "\"");
 }
 
 void PrintKeyword(const std::string& keyword) {
-    Print("Найдено ключевое слово: " + keyword);
+    Print("Found keyword: " + keyword);
 }
 
 void PrintLogicalOperator(const std::string& o) {
-    Print("Найдена логическая операция: " + o);
+    Print("Found logic operator: " + o);
 }
 
 void PrintAriphmeticOperator(const std::string& o) {
-    Print("Найдена арифметическая операция: " + o);
+    Print("Found ariphmetic operator: " + o);
 }
 
 void PrintIntegerLiteral(const std::string& type, int integer) {
-    Print("Найден " + type + " числовой литерал: " + std::to_string(integer));
+    Print("Found " + type + " integer literal: " + std::to_string(integer));
 }
 
 %}
@@ -97,7 +97,7 @@ char currentCharacter;
                                         }
 
 <MULTILINE_COMMENT><<EOF>>              {
-                                            PrintError("Ошибка! Многострочный комментарий незакончен до конца файла!", yylineno);
+                                            PrintError("Error! Expected end of multiline comment but found end of file!", yylineno);
                                             BEGIN(INITIAL);
                                         }
 
@@ -129,11 +129,11 @@ char currentCharacter;
                                             currentStringLiteral += "\f";
                                         }
 <STRING_LITERAL>\n                      {
-                                            PrintError("Найден конец строки, ожидалось завершение строкового литерала!", yylineno);
+                                            PrintError("Error! Expected end of string literal but found end of line!", yylineno);
                                             BEGIN(INITIAL);
                                         }
 <STRING_LITERAL><<EOF>>                 {
-                                            PrintError("Найден конец файла, ожидалось завершение строкового литерала!", yylineno);
+                                            PrintError("Error! expected end of string literal but found end of file!", yylineno);
                                             BEGIN(INITIAL);
                                         }
 <STRING_LITERAL>\\r                     {
@@ -179,7 +179,7 @@ char currentCharacter;
                                             BEGIN(INITIAL);
                                         }
 <VERBATIM_STRING_LITERAL><<EOF>>        {
-                                            PrintError("Найден конец файла, ожидалось завершение строкового литерала!", yylineno);
+                                            PrintError("Error! expected end of string literal but found end of file!", yylineno);
                                             BEGIN(INITIAL);
                                         }
 
@@ -268,15 +268,15 @@ while                                   { PrintKeyword(yytext); }
 
 0[0-7]+                                 { 
                                             std::sscanf(yytext, "%o", &currentInteger);
-                                            PrintIntegerLiteral("восьмеричный", currentInteger); 
+                                            PrintIntegerLiteral("octal", currentInteger); 
                                         }
 АЛИНА!!!                                { 
                                             std::sscanf(yytext, "%d", &currentInteger);
-                                            PrintIntegerLiteral("десятичный", currentInteger); 
+                                            PrintIntegerLiteral("decimal", currentInteger); 
                                         }
 АЛИНА!!!                                { 
                                             std::sscanf(yytext, "%x", &currentInteger);
-                                            PrintIntegerLiteral("шестнадцетиричный", currentInteger); 
+                                            PrintIntegerLiteral("hexadecimal", currentInteger); 
                                         }
 
 %%

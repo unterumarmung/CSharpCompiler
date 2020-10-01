@@ -738,35 +738,35 @@ void PrintError(const std::string& errorMessage, int line = -1)
 {
     std::cerr << errorMessage << std::endl;
     if (line >= 0)
-        std::cerr << "Номер Строки: " << line << std::endl;
+        std::cerr << "Line: " << line << std::endl;
     std::cerr << std::endl;
 }
 
 void PrintComment(const std::string& comment) 
 {
-    Print("Найден комментарий со следующим содержимым:");
+    Print("Found multiline comment:");
     Print("\"" + comment + "\"");
 }
 
 void PrintStringLiteral(const std::string& literal) {
-    Print("Найден строковый литерал со следующим содержимым:");
+    Print("Found string literal:");
     Print("\"" + literal + "\"");
 }
 
 void PrintKeyword(const std::string& keyword) {
-    Print("Найдено ключевое слово: " + keyword);
+    Print("Found keyword: " + keyword);
 }
 
 void PrintLogicalOperator(const std::string& o) {
-    Print("Найдена логическая операция: " + o);
+    Print("Found logic operator: " + o);
 }
 
 void PrintAriphmeticOperator(const std::string& o) {
-    Print("Найдена арифметическая операция: " + o);
+    Print("Found ariphmetic operator: " + o);
 }
 
 void PrintIntegerLiteral(const std::string& type, int integer) {
-    Print("Найден " + type + " числовой литерал: " + std::to_string(integer));
+    Print("Found " + type + " integer literal: " + std::to_string(integer));
 }
 
 #line 772 "Lexer.flex.cpp"
@@ -1104,7 +1104,7 @@ YY_RULE_SETUP
 case YY_STATE_EOF(MULTILINE_COMMENT):
 #line 100 "Lexer.l"
 {
-                                            PrintError("Ошибка! Многострочный комментарий незакончен до конца файла!", yylineno);
+                                            PrintError("Error! Expected end of multiline comment but found end of file!", yylineno);
                                             BEGIN(INITIAL);
                                         }
 	YY_BREAK
@@ -1171,14 +1171,14 @@ case 14:
 YY_RULE_SETUP
 #line 132 "Lexer.l"
 {
-                                            PrintError("Найден конец строки, ожидалось завершение строкового литерала!", yylineno);
+                                            PrintError("Error! Expected end of string literal but found end of line!", yylineno);
                                             BEGIN(INITIAL);
                                         }
 	YY_BREAK
 case YY_STATE_EOF(STRING_LITERAL):
 #line 136 "Lexer.l"
 {
-                                            PrintError("Найден конец файла, ожидалось завершение строкового литерала!", yylineno);
+                                            PrintError("Error! expected end of string literal but found end of file!", yylineno);
                                             BEGIN(INITIAL);
                                         }
 	YY_BREAK
@@ -1280,7 +1280,7 @@ YY_RULE_SETUP
 case YY_STATE_EOF(VERBATIM_STRING_LITERAL):
 #line 182 "Lexer.l"
 {
-                                            PrintError("Найден конец файла, ожидалось завершение строкового литерала!", yylineno);
+                                            PrintError("Error! expected end of string literal but found end of file!", yylineno);
                                             BEGIN(INITIAL);
                                         }
 	YY_BREAK
@@ -1689,7 +1689,7 @@ YY_RULE_SETUP
 #line 270 "Lexer.l"
 { 
                                             std::sscanf(yytext, "%o", &currentInteger);
-                                            PrintIntegerLiteral("восьмеричный", currentInteger); 
+                                            PrintIntegerLiteral("octal", currentInteger); 
                                         }
 	YY_BREAK
 case 109:
@@ -1697,7 +1697,7 @@ YY_RULE_SETUP
 #line 274 "Lexer.l"
 { 
                                             std::sscanf(yytext, "%d", &currentInteger);
-                                            PrintIntegerLiteral("десятичный", currentInteger); 
+                                            PrintIntegerLiteral("decimal", currentInteger); 
                                         }
 	YY_BREAK
 case 110:
@@ -1705,7 +1705,7 @@ YY_RULE_SETUP
 #line 278 "Lexer.l"
 { 
                                             std::sscanf(yytext, "%x", &currentInteger);
-                                            PrintIntegerLiteral("шестнадцетиричный", currentInteger); 
+                                            PrintIntegerLiteral("hexadecimal", currentInteger); 
                                         }
 	YY_BREAK
 case 111:

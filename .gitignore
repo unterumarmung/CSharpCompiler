@@ -1,2 +1,5 @@
 /.vs/
 /Build/
+*.user
+*.flex.cpp
+*.flex.c

@@ -63,7 +63,6 @@ void PrintIntegerLiteral(const std::string& type, int integer) {
 %x MULTILINE_COMMENT
 %x STRING_LITERAL
 %x VERBATIM_STRING_LITERAL
-%x CHARACTER_LITERAL
 
 %%
 
@@ -264,7 +263,7 @@ while                                   { PrintKeyword(yytext); }
 \+                                      { PrintAriphmeticOperator(yytext); }
 \=\=                                    { PrintLogicalOperator(yytext); }
 
-\{                                      { Print("Найдена левая фигурная скобка"); }
+\{                                      { Print("Found left curly brace"); }
 
 0[0-7]+                                 { 
                                             std::sscanf(yytext, "%o", &currentInteger);

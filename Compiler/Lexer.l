@@ -118,10 +118,7 @@ char buffer[10];
 <STRING_LITERAL>\\x[0-9a-fA-F]{1,4}     {
                                             std::fill(std::begin(buffer), std::end(buffer), 0);
                                             std::copy(yytext, yytext + yyleng, buffer);
-                                            // Replace \ to 0. So std::sscanf can actually read this
-                                            // \x74 --> 0x74
-                                            buffer[0] = '0'; 
-                                            std::sscanf(buffer, "%x", &currentInteger);
+                                            std::sscanf(buffer + 2, "%x", &currentInteger);
                                             currentStringLiteral = static_cast<char>(currentInteger);
                                         }
 <STRING_LITERAL>\\n                     {
@@ -200,10 +197,7 @@ char buffer[10];
 '\\x[0-9a-fA-F]{1,4}'                   {
                                             std::fill(std::begin(buffer), std::end(buffer), 0);
                                             std::copy(yytext + 1, yytext + yyleng - 1, buffer);
-                                            // Replace \ to 0. So std::sscanf can actually read this
-                                            // \x74 --> 0x74
-                                            buffer[0] = '0'; 
-                                            std::sscanf(buffer, "%x", &currentInteger);
+                                            std::sscanf(buffer + 2, "%x", &currentInteger);
                                             currentCharacter = static_cast<char>(currentInteger);
                                             PrintCharacterLiteral(currentCharacter);
                                         }

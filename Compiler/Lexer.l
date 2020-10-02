@@ -51,6 +51,10 @@ void PrintLogicalOperator(const std::string& o) {
     Print("Found logic operator: " + o);
 }
 
+void PrintComparisonOperator(const std::string& c) {
+    Print("Found comparison operator: " + c);
+}
+
 void PrintAriphmeticOperator(const std::string& o) {
     Print("Found ariphmetic operator: " + o);
 }
@@ -62,6 +66,10 @@ void PrintIntegerLiteral(const std::string& type, const int integer) {
 void PrintCharacterLiteral(const char literal) {
     using namespace std::string_literals;
     Print("Found character: \'"s + literal + "\'"s);
+}
+
+void PrintIdentifier(const std::string& identifier) {
+    Print("Found identifier: " + identifier);
 }
 
 %}

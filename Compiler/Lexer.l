@@ -269,6 +269,7 @@ char buffer[10];
                                             PrintCharacterLiteral(currentCharacter);
                                         }
 
+
 abstract                                { PrintKeyword(yytext); } 
 as                                      { PrintKeyword(yytext); } 
 base                                    { PrintKeyword(yytext); } 
@@ -346,26 +347,63 @@ virtual                                 { PrintKeyword(yytext); }
 void                                    { PrintKeyword(yytext); } 
 volatile                                { PrintKeyword(yytext); } 
 while                                   { PrintKeyword(yytext); } 
+get                                     { PrintKeyword(yytext); }
+set                                     { PrintKeyword(yytext); }
 
-\+                                      { PrintAriphmeticOperator(yytext); }
-\=\=                                    { PrintLogicalOperator(yytext); }
+"+"                                     { PrintAriphmeticOperator(yytext); }
+"-"                                     { PrintAriphmeticOperator(yytext); }
+"*"                                     { PrintAriphmeticOperator(yytext); }
+"/"                                     { PrintAriphmeticOperator(yytext); }
+"%"                                     { PrintAriphmeticOperator(yytext); }
+
+"=="                                    { PrintComparisonOperator(yytext); }
+"!="                                    { PrintComparisonOperator(yytext); }
+"<="                                    { PrintComparisonOperator(yytext); }
+">="                                    { PrintComparisonOperator(yytext); }
+">"                                     { PrintComparisonOperator(yytext); }
+"<"                                     { PrintComparisonOperator(yytext); }
+
+"&&"                                    { PrintLogicalOperator(yytext); }
+"||"                                    { PrintLogicalOperator(yytext); }
+"!"                                     { PrintLogicalOperator(yytext); }
+
+"="                                     { Print("Found assignment operation"); }
+
+":"                                     { Print("Found inheritance operation"); }
+
+";"                                     { Print("Found semicolon"); }
+
+","                                     { Print("Found comma"); }
+"."                                     { Print("Found dot"); }
 
 \{                                      { Print("Found left curly brace"); }
+\}                                      { Print("Found right curly brace"); }
+
+\(                                      { Print("Found left parenthesis"); }
+\)                                      { Print("Found right parenthesis"); }
+
+\[                                      { Print("Found left bracket"); }
+\]                                      { Print("Found right bracket"); }
 
 0[0-7]+                                 { 
                                             std::sscanf(yytext, "%o", &currentInteger);
                                             PrintIntegerLiteral("octal", currentInteger); 
                                         }
-ÀËÈÍÀ!!!                                { 
+[0-9]+                                  { 
                                             std::sscanf(yytext, "%d", &currentInteger);
                                             PrintIntegerLiteral("decimal", currentInteger); 
                                         }
-ÀËÈÍÀ!!!                                { 
+0x[[:xdigit:]]+                         { 
                                             std::sscanf(yytext, "%x", &currentInteger);
                                             PrintIntegerLiteral("hexadecimal", currentInteger); 
                                         }
+[[:alpha:]_][[:alnum:]_]*               {
+                                            PrintIdentifier(yytext);
+                                        }
+[[:space:]]+                            { /* ignoring */ }
 
 %%
+
 #ifdef _MSC_VER
 #pragma warning( pop )
 #endif // _MSC_VER

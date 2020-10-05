@@ -3,6 +3,8 @@
 %option yylineno
 
 %{
+/* Note: There's no octal integer literals in C# */
+
 // Remove warnings from flex
 #ifdef _MSC_VER
 #pragma warning( push, 0 )
@@ -72,7 +74,17 @@ void PrintIdentifier(const std::string& identifier) {
     Print("Found identifier: " + identifier);
 }
 
+void RemoveCharacterFromString(std::string& str, char ch) {
+    const auto newLast = std::remove(str.begin(), str.end(), ch);
+    str.erase(newLast, str.end());
+}
+
 %}
+
+DEC_DIGIT [0-9]
+HEX_DIGIT [0-9A-Fa-f]
+BIN_DIGIT [01]
+EXPONENT [eE][+-]?[1-9](_?[0-9])*
 
 %x MULTILINE_COMMENT
 %x STRING_LITERAL
@@ -114,6 +126,8 @@ char buffer[10];
                                             PrintError("Error! Expected end of multiline comment but found end of file!", yylineno);
                                             BEGIN(INITIAL);
                                         }
+                                        
+\/\/.*                                  { Print("Found single-line comment: " + std::string{yytext}); }
 
 \"                                      {
                                             currentStringLiteral.clear();
@@ -385,17 +399,23 @@ set                                     { PrintKeyword(yytext); }
 \[                                      { Print("Found left bracket"); }
 \]                                      { Print("Found right bracket"); }
 
-0[0-7]+                                 { 
-                                            std::sscanf(yytext, "%o", &currentInteger);
-                                            PrintIntegerLiteral("octal", currentInteger); 
-                                        }
-[0-9]+                                  { 
-                                            std::sscanf(yytext, "%d", &currentInteger);
+{DEC_DIGIT}(_?{DEC_DIGIT})*             {
+                                            std::string number_string = yytext;
+                                            RemoveCharacterFromString(number_string, '_');
+                                            std::from_chars(number_string.c_str(), number_string.c_str() + number_string.size(), currentInteger);
                                             PrintIntegerLiteral("decimal", currentInteger); 
                                         }
-0x[[:xdigit:]]+                         { 
-                                            std::sscanf(yytext, "%x", &currentInteger);
+0x(_*{HEX_DIGIT})*                      { 
+                                            std::string number_string = yytext;
+                                            RemoveCharacterFromString(number_string, '_');
+                                            std::from_chars(number_string.c_str() + 2, number_string.c_str() + number_string.size(), currentInteger, 16);
                                             PrintIntegerLiteral("hexadecimal", currentInteger); 
+                                        }
+0b(_*{BIN_DIGIT})*                      { 
+                                            std::string number_string = yytext;
+                                            RemoveCharacterFromString(number_string, '_');
+                                            std::from_chars(number_string.c_str() + 2, number_string.c_str() + number_string.size(), currentInteger, 2);
+                                            PrintIntegerLiteral("binary", currentInteger); 
                                         }
 [[:alpha:]_][[:alnum:]_]*               {
                                             PrintIdentifier(yytext);

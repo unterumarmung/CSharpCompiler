@@ -1,0 +1,9 @@
+/* asdsadasd */
+
+/* dsfdsfsdf
+sdfdsfsdf
+sdfdsfsdf */
+
+// SINGLE LINE COMMENT TEST
+
+/* dasdasdasd *?

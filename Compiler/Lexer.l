@@ -94,6 +94,7 @@ EXPONENT [eE][+-]?{DEC_NUMBER}
 %x MULTILINE_COMMENT
 %x STRING_LITERAL
 %x VERBATIM_STRING_LITERAL
+%x CHARACTER_LITERAL
 
 %%
 
@@ -101,7 +102,7 @@ EXPONENT [eE][+-]?{DEC_NUMBER}
 std::string currentStringLiteral;
 std::string currentComment;
 int currentInteger;
-char currentCharacter;
+std::string currentCharacter;
 double currentFloatingPoint;
 char buffer[10];
 %}
@@ -218,76 +219,72 @@ char buffer[10];
                                             PrintError("Error! expected end of string literal but found end of file!", yylineno);
                                             BEGIN(INITIAL);
                                         }
-\'\'                                    {
-                                            PrintError("Error! Found empty character literal!", yylineno);
+\'                                      {
+                                            currentCharacter.clear();
+                                            BEGIN(CHARACTER_LITERAL);
+                                        }
+<CHARACTER_LITERAL>\'                   {
+                                            if (currentCharacter.size() == 0) 
+                                            {
+                                                PrintError("Error! Found empty character literal");
+                                            }
+                                            else if (currentCharacter.size() > 1)
+                                            {
+                                                PrintError("Error! Character literal is not allowed to have more then one character");
+                                            }
+                                            else 
+                                            {
+                                                PrintCharacterLiteral(currentCharacter[0]);
+                                            }
                                             BEGIN(INITIAL);
                                         }
-'\\x[0-9a-fA-F]{1,4}'                   {
+<CHARACTER_LITERAL>[^\'\\]+             {
+
+                                                currentCharacter += yytext;                                                    
+                                        }
+<CHARACTER_LITERAL>\\x[0-9a-fA-F]{1,4}  {
                                             std::fill(std::begin(buffer), std::end(buffer), 0);
-                                            std::copy(yytext + 1, yytext + yyleng - 1, buffer);
-                                            std::sscanf(buffer + 2, "%x", &currentInteger);
-                                            currentCharacter = static_cast<char>(currentInteger);
-                                            PrintCharacterLiteral(currentCharacter);
+                                            std::copy(yytext + 2, yytext + yyleng, buffer);
+                                            std::sscanf(buffer, "%x", &currentInteger);
+                                            currentCharacter += static_cast<char>(currentInteger);
                                         }
-'\\x[0-9a-fA-F]{5,}'                    {
-                                            PrintError("Error! Length of hexadecimal character literal cannot be larger than 4!");
+<CHARACTER_LITERAL>\\n                  {
+                                            currentCharacter += '\n';
                                         }
-'(\\\'|[^']+)\n                         {
-                                            PrintError("Error! Expected end of character literal but found end of line!", yylineno);
+<CHARACTER_LITERAL>\\t                  {
+                                            currentCharacter += '\t';
+                                        }
+<CHARACTER_LITERAL>\\a                  {
+                                            currentCharacter += '\a';
+                                        }
+<CHARACTER_LITERAL>\\b                  {
+                                            currentCharacter += '\b';
+                                        }
+<CHARACTER_LITERAL>\\f                  {
+                                            currentCharacter += '\f';
+                                        }
+<CHARACTER_LITERAL>\\r                  {
+                                            currentCharacter += '\r';
+                                        }
+<CHARACTER_LITERAL>\\v                  {
+                                            currentCharacter += '\v';
+                                        }
+<CHARACTER_LITERAL>\\?                  {
+                                            currentCharacter += '\?';
+                                        }
+<CHARACTER_LITERAL>\\0                  {
+                                            currentCharacter += '\0';
+                                        }
+<CHARACTER_LITERAL>\\\\                 {
+                                            currentCharacter += '\\';
+                                        }
+<CHARACTER_LITERAL>\\\"                 {      
+                                            currentCharacter += '\"';
+                                        }
+<CHARACTER_LITERAL>\\\'                 {
+                                            currentCharacter += '\'';
                                         }
 
-'\\n'                                   {
-                                            currentCharacter = '\n';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\t'                                   {
-                                            currentCharacter = '\t';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\a'                                   {
-                                            currentCharacter = '\a';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\b'                                   {
-                                            currentCharacter = '\b';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\f'                                   {
-                                            currentCharacter = '\f';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\r'                                   {
-                                            currentCharacter = '\r';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\v'                                   {
-                                            currentCharacter = '\v';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\?'                                   {
-                                            currentCharacter = '\?';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\0'                                   {
-                                            currentCharacter = '\0';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\\\'                                  {
-                                            currentCharacter = '\\';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\\"'                                  {      
-                                            currentCharacter = '\"';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'\\\''                                  {
-                                            currentCharacter = '\'';
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
-'[^\\']'                                {
-                                            currentCharacter = yytext[1];
-                                            PrintCharacterLiteral(currentCharacter);
-                                        }
 
 
 abstract                                { PrintKeyword(yytext); } 

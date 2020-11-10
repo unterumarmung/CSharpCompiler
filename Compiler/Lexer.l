@@ -88,7 +88,7 @@ void RemoveCharacterFromString(std::string& str, char ch) {
 DEC_DIGIT [0-9]
 HEX_DIGIT [0-9A-Fa-f]
 BIN_DIGIT [01]
-DEC_NUMBER {DEC_DIGIT}(_?{DEC_DIGIT})*
+DEC_NUMBER {DEC_DIGIT}(_*{DEC_DIGIT})*
 EXPONENT [eE][+-]?{DEC_NUMBER}
 
 %x MULTILINE_COMMENT
@@ -405,31 +405,42 @@ set                                     { PrintKeyword(yytext); }
 \[                                      { Print("Found left bracket"); }
 \]                                      { Print("Found right bracket"); }
 
+{DEC_NUMBER}{EXPONENT}                                    {
+                                                               std::string number_string = yytext;
+                                                               RemoveCharacterFromString(number_string, '_');
+                                                               std::from_chars(number_string.c_str(), number_string.c_str() + number_string.size(), currentFloatingPoint);
+                                                               PrintFloatingPointLiteral(currentFloatingPoint); 
+                                                          }
+({DEC_NUMBER}?\.{DEC_NUMBER}){EXPONENT}?                  {
+                                                               std::string number_string = yytext;
+                                                               RemoveCharacterFromString(number_string, '_');
+                                                               std::from_chars(number_string.c_str(), number_string.c_str() + number_string.size(), currentFloatingPoint);
+                                                               PrintFloatingPointLiteral(currentFloatingPoint); 
+                                                          }
+
 {DEC_NUMBER}                            {
                                             std::string number_string = yytext;
                                             RemoveCharacterFromString(number_string, '_');
                                             std::from_chars(number_string.c_str(), number_string.c_str() + number_string.size(), currentInteger);
                                             PrintIntegerLiteral("decimal", currentInteger); 
                                         }
-0x(_*{HEX_DIGIT})*                      { 
+0x(_|{HEX_DIGIT})*{HEX_DIGIT}+          { 
+                                            currentInteger = 0;
                                             std::string number_string = yytext;
                                             RemoveCharacterFromString(number_string, '_');
                                             std::from_chars(number_string.c_str() + 2, number_string.c_str() + number_string.size(), currentInteger, 16);
                                             PrintIntegerLiteral("hexadecimal", currentInteger); 
                                         }
-0b(_*{BIN_DIGIT})*                      { 
+0b(_|{BIN_DIGIT})*{BIN_DIGIT}+          { 
+                                            currentInteger = 0;
                                             std::string number_string = yytext;
                                             RemoveCharacterFromString(number_string, '_');
                                             std::from_chars(number_string.c_str() + 2, number_string.c_str() + number_string.size(), currentInteger, 2);
                                             PrintIntegerLiteral("binary", currentInteger); 
                                         }
 
-(\.?{DEC_NUMBER}|{DEC_NUMBER}\.{DEC_NUMBER}){EXPONENT}?  {
-                                                               std::string number_string = yytext;
-                                                               RemoveCharacterFromString(number_string, '_');
-                                                               std::from_chars(number_string.c_str(), number_string.c_str() + number_string.size(), currentFloatingPoint);
-                                                               PrintFloatingPointLiteral(currentFloatingPoint); 
-                                                          }
+
+
 
 [[:alpha:]_][[:alnum:]_]*               {
                                             PrintIdentifier(yytext);

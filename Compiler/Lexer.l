@@ -21,9 +21,22 @@
 
 #include "enable_unicode_console.hpp"
 
+#include "Parser.tab.h"
+
 void Print(const std::string& message)
 {
+    #if 0
     std::cout << message << std::endl;
+    #endif
+}
+
+char* Dublicate(const char* source) 
+{
+    const auto length = std::strlen(source) + 1;
+    char* destination = new char[length];
+    std::fill(destination, destination + length, 0);
+    std::copy(source, source + length, destination);
+    return destination;
 }
 
 void PrintError(const std::string& errorMessage, const int line = -1) 
@@ -196,7 +209,9 @@ char buffer[10];
                                         }
 <STRING_LITERAL>\"                      {
                                             PrintStringLiteral(currentStringLiteral);
+                                            yylval._string = Dublicate(currentStringLiteral.c_str());
                                             BEGIN(INITIAL);
+                                            return STRING;
                                         }
 @\"                                     {
                                             currentStringLiteral.clear();
@@ -213,7 +228,9 @@ char buffer[10];
                                         }
 <VERBATIM_STRING_LITERAL>\"             {
                                             PrintStringLiteral(currentStringLiteral);
+                                            yylval._string = Dublicate(currentStringLiteral.c_str());
                                             BEGIN(INITIAL);
+                                            return STRING;
                                         }
 <VERBATIM_STRING_LITERAL><<EOF>>        {
                                             PrintError("Error! expected end of string literal but found end of file!", yylineno);
@@ -223,6 +240,7 @@ char buffer[10];
                                             currentCharacter.clear();
                                             BEGIN(CHARACTER_LITERAL);
                                         }
+
 <CHARACTER_LITERAL>\'                   {
                                             if (currentCharacter.size() == 0) 
                                             {
@@ -236,10 +254,11 @@ char buffer[10];
                                             {
                                                 PrintCharacterLiteral(currentCharacter[0]);
                                             }
+                                            yylval._character = currentCharacter[0];
                                             BEGIN(INITIAL);
+                                            return CHARACTER;
                                         }
 <CHARACTER_LITERAL>[^\'\\]+             {
-
                                                 currentCharacter += yytext;                                                    
                                         }
 <CHARACTER_LITERAL>\\x[0-9a-fA-F]{1,4}  {
@@ -290,12 +309,12 @@ char buffer[10];
 abstract                                { PrintKeyword(yytext); } 
 as                                      { PrintKeyword(yytext); } 
 base                                    { PrintKeyword(yytext); } 
-bool                                    { PrintKeyword(yytext); } 
+bool                                    { return BOOL_KW; } 
 break                                   { PrintKeyword(yytext); } 
 byte                                    { PrintKeyword(yytext); } 
 case                                    { PrintKeyword(yytext); } 
 catch                                   { PrintKeyword(yytext); } 
-char                                    { PrintKeyword(yytext); } 
+char                                    { return CHAR_KW; } 
 checked                                 { PrintKeyword(yytext); } 
 class                                   { PrintKeyword(yytext); } 
 const                                   { PrintKeyword(yytext); } 
@@ -303,9 +322,9 @@ continue                                { PrintKeyword(yytext); }
 decimal                                 { PrintKeyword(yytext); } 
 default                                 { PrintKeyword(yytext); } 
 delegate                                { PrintKeyword(yytext); } 
-do                                      { PrintKeyword(yytext); } 
+do                                      { return DO; } 
 double                                  { PrintKeyword(yytext); } 
-else                                    { PrintKeyword(yytext); } 
+else                                    { return ELSE; } 
 enum                                    { PrintKeyword(yytext); } 
 event                                   { PrintKeyword(yytext); } 
 explicit                                { PrintKeyword(yytext); } 
@@ -313,14 +332,14 @@ extern                                  { PrintKeyword(yytext); }
 false                                   { PrintKeyword(yytext); } 
 finally                                 { PrintKeyword(yytext); } 
 fixed                                   { PrintKeyword(yytext); } 
-float                                   { PrintKeyword(yytext); } 
+float                                   { return FLOAT_KW; } 
 for                                     { PrintKeyword(yytext); } 
 foreach                                 { PrintKeyword(yytext); } 
 goto                                    { PrintKeyword(yytext); } 
-if                                      { PrintKeyword(yytext); } 
+if                                      { return IF; } 
 implicit                                { PrintKeyword(yytext); } 
 in                                      { PrintKeyword(yytext); } 
-int                                     { PrintKeyword(yytext); } 
+int                                     { return INT_KW; } 
 interface                               { PrintKeyword(yytext); } 
 internal                                { PrintKeyword(yytext); } 
 is                                      { PrintKeyword(yytext); } 
@@ -339,14 +358,14 @@ protected                               { PrintKeyword(yytext); }
 public                                  { PrintKeyword(yytext); } 
 readonly                                { PrintKeyword(yytext); } 
 ref                                     { PrintKeyword(yytext); } 
-return                                  { PrintKeyword(yytext); } 
+return                                  { return RETURN; } 
 sbyte                                   { PrintKeyword(yytext); } 
 sealed                                  { PrintKeyword(yytext); } 
 short                                   { PrintKeyword(yytext); } 
 sizeof                                  { PrintKeyword(yytext); } 
 stackalloc                              { PrintKeyword(yytext); } 
 static                                  { PrintKeyword(yytext); } 
-string                                  { PrintKeyword(yytext); } 
+string                                  { return STRING_KW; } 
 struct                                  { PrintKeyword(yytext); } 
 switch                                  { PrintKeyword(yytext); } 
 this                                    { PrintKeyword(yytext); } 
@@ -363,56 +382,61 @@ using                                   { PrintKeyword(yytext); }
 virtual                                 { PrintKeyword(yytext); } 
 void                                    { PrintKeyword(yytext); } 
 volatile                                { PrintKeyword(yytext); } 
-while                                   { PrintKeyword(yytext); } 
+while                                   { return WHILE; } 
 get                                     { PrintKeyword(yytext); }
 set                                     { PrintKeyword(yytext); }
 
-"+"                                     { PrintAriphmeticOperator(yytext); }
-"-"                                     { PrintAriphmeticOperator(yytext); }
-"*"                                     { PrintAriphmeticOperator(yytext); }
-"/"                                     { PrintAriphmeticOperator(yytext); }
-"%"                                     { PrintAriphmeticOperator(yytext); }
+"+"                                     { return yytext[0]; }
+"-"                                     { return yytext[0]; }
+"*"                                     { return yytext[0]; }
+"/"                                     { return yytext[0]; }
+"%"                                     { return yytext[0]; }
 
-"=="                                    { PrintComparisonOperator(yytext); }
-"!="                                    { PrintComparisonOperator(yytext); }
-"<="                                    { PrintComparisonOperator(yytext); }
-">="                                    { PrintComparisonOperator(yytext); }
-">"                                     { PrintComparisonOperator(yytext); }
-"<"                                     { PrintComparisonOperator(yytext); }
+"=="                                    { return EQUAL; }
+"!="                                    { return NOT_EQUAL; }
+"<="                                    { return LESS_OR_EQUAL; }
+">="                                    { return GREATER_OR_EQUAL; }
+">"                                     { return yytext[0]; }
+"<"                                     { return yytext[0]; }
 
-"&&"                                    { PrintLogicalOperator(yytext); }
-"||"                                    { PrintLogicalOperator(yytext); }
-"!"                                     { PrintLogicalOperator(yytext); }
+"&&"                                    { return AND; }
+"||"                                    { return OR; }
+"!"                                     { return yytext[0]; }
 
-"="                                     { Print("Found assignment operation"); }
+"="                                     { return yytext[0]; }
 
-":"                                     { Print("Found inheritance operation"); }
+":"                                     { return yytext[0]; }
 
-";"                                     { Print("Found semicolon"); }
+";"                                     { return yytext[0]; }
 
-","                                     { Print("Found comma"); }
-"."                                     { Print("Found dot"); }
+","                                     { return yytext[0]; }
+"."                                     { return yytext[0]; }
 
-\{                                      { Print("Found left curly brace"); }
-\}                                      { Print("Found right curly brace"); }
+\{                                      { return yytext[0]; }
+\}                                      { return yytext[0]; }
 
-\(                                      { Print("Found left parenthesis"); }
-\)                                      { Print("Found right parenthesis"); }
+\(                                      { return yytext[0]; }
+\)                                      { return yytext[0]; }
 
-\[                                      { Print("Found left bracket"); }
-\]                                      { Print("Found right bracket"); }
+\[                                      { return yytext[0]; }
+\]                                      { return yytext[0]; }
 
 {DEC_NUMBER}{EXPONENT}                                    {
                                                                std::string number_string = yytext;
                                                                RemoveCharacterFromString(number_string, '_');
                                                                std::from_chars(number_string.c_str(), number_string.c_str() + number_string.size(), currentFloatingPoint);
                                                                PrintFloatingPointLiteral(currentFloatingPoint); 
+                                                               yylval._floatingPoint = currentFloatingPoint;
+                                                               return FLOATING_POINT;
                                                           }
+
 ({DEC_NUMBER}?\.{DEC_NUMBER}){EXPONENT}?                  {
                                                                std::string number_string = yytext;
                                                                RemoveCharacterFromString(number_string, '_');
                                                                std::from_chars(number_string.c_str(), number_string.c_str() + number_string.size(), currentFloatingPoint);
                                                                PrintFloatingPointLiteral(currentFloatingPoint); 
+                                                               yylval._floatingPoint = currentFloatingPoint;
+                                                               return FLOATING_POINT;
                                                           }
 
 {DEC_NUMBER}                            {
@@ -420,28 +444,38 @@ set                                     { PrintKeyword(yytext); }
                                             RemoveCharacterFromString(number_string, '_');
                                             std::from_chars(number_string.c_str(), number_string.c_str() + number_string.size(), currentInteger);
                                             PrintIntegerLiteral("decimal", currentInteger); 
+                                            yylval._integer = currentInteger;
+                                            return INTEGER;
                                         }
+
 0x(_|{HEX_DIGIT})*{HEX_DIGIT}+          { 
                                             currentInteger = 0;
                                             std::string number_string = yytext;
                                             RemoveCharacterFromString(number_string, '_');
                                             std::from_chars(number_string.c_str() + 2, number_string.c_str() + number_string.size(), currentInteger, 16);
                                             PrintIntegerLiteral("hexadecimal", currentInteger); 
+                                            yylval._integer = currentInteger;
+                                            return INTEGER;
                                         }
+
 0b(_|{BIN_DIGIT})*{BIN_DIGIT}+          { 
                                             currentInteger = 0;
                                             std::string number_string = yytext;
                                             RemoveCharacterFromString(number_string, '_');
                                             std::from_chars(number_string.c_str() + 2, number_string.c_str() + number_string.size(), currentInteger, 2);
                                             PrintIntegerLiteral("binary", currentInteger); 
+                                            yylval._integer = currentInteger;
+                                            return INTEGER;
                                         }
-
-
 
 
 [[:alpha:]_][[:alnum:]_]*               {
                                             PrintIdentifier(yytext);
+                                            yylval._identifier = Dublicate(yytext);
+                                            return IDENTIFIER;
                                         }
+
+
 [[:space:]]+                            { /* ignoring */ }
 
 %%
@@ -449,17 +483,3 @@ set                                     { PrintKeyword(yytext); }
 #ifdef _MSC_VER
 #pragma warning( pop )
 #endif // _MSC_VER
-
-int main(int argc, char** argv) 
-{
-    if (argc > 1)
-    {
-        const auto errorCode = fopen_s(&yyin, argv[1], "r");
-    }
-    else 
-    {
-        yyin = stdin;
-    }
-
-    yylex();
-}

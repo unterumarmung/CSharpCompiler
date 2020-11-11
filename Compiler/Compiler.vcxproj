@@ -23,6 +23,22 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Lexer.flex.cpp" />
+    <ClCompile Include="Parser.tab.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Bison Include="Parser.y">
+      <Verbose Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</Verbose>
+      <Verbose Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</Verbose>
+      <Verbose Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</Verbose>
+      <Verbose Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</Verbose>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">-Wcounterexamples %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">-Wcounterexamples %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">-Wcounterexamples %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">-Wcounterexamples %(AdditionalOptions)</AdditionalOptions>
+    </Bison>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Parser.tab.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -62,6 +78,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
     <Import Project="..\ThirdParty\CustomBuildRules\WinFlexBison\win_flex_only\win_flex_custom_build.props" />
+    <Import Project="..\ThirdParty\CustomBuildRules\WinFlexBison\win_bison_only\win_bison_custom_build.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
     <Import Project="..\Common\Common.vcxitems" Label="Shared" />
@@ -170,5 +187,6 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(SolutionDir)\ThirdParty\CustomBuildRules\WinFlexBison\win_flex_only\win_flex_custom_build.targets" />
+    <Import Project="..\ThirdParty\CustomBuildRules\WinFlexBison\win_bison_only\win_bison_custom_build.targets" />
   </ImportGroup>
 </Project>

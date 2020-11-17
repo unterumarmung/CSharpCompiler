@@ -115,7 +115,10 @@ expr: value_expr
     | new_expr
     | NULL_KW
     | '(' expr ')'
+    | method_call_expr
 ;
+
+method_call_expr: IDENTIFIER '(' expr_seq_optional ')'  { Print("Found method call with name:", $1); }
 
 expr_optional: 
               | expr

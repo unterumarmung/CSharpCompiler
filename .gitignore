@@ -3,3 +3,7 @@
 *.user
 *.flex.cpp
 *.flex.c
+*.tab.cpp
+*.tab.c
+*.tab.h
+*.output

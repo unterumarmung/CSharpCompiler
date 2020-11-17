@@ -316,7 +316,7 @@ case                                    { PrintKeyword(yytext); }
 catch                                   { PrintKeyword(yytext); } 
 char                                    { return CHAR_KW; } 
 checked                                 { PrintKeyword(yytext); } 
-class                                   { PrintKeyword(yytext); } 
+class                                   { return CLASS; } 
 const                                   { PrintKeyword(yytext); } 
 continue                                { PrintKeyword(yytext); } 
 decimal                                 { PrintKeyword(yytext); } 
@@ -329,11 +329,11 @@ enum                                    { PrintKeyword(yytext); }
 event                                   { PrintKeyword(yytext); } 
 explicit                                { PrintKeyword(yytext); } 
 extern                                  { PrintKeyword(yytext); } 
-false                                   { PrintKeyword(yytext); } 
+false                                   { return FALSE_KW; } 
 finally                                 { PrintKeyword(yytext); } 
 fixed                                   { PrintKeyword(yytext); } 
 float                                   { return FLOAT_KW; } 
-for                                     { PrintKeyword(yytext); } 
+for                                     { return FOR; } 
 foreach                                 { PrintKeyword(yytext); } 
 goto                                    { PrintKeyword(yytext); } 
 if                                      { return IF; } 
@@ -346,8 +346,8 @@ is                                      { PrintKeyword(yytext); }
 lock                                    { PrintKeyword(yytext); } 
 long                                    { PrintKeyword(yytext); } 
 namespace                               { PrintKeyword(yytext); } 
-new                                     { PrintKeyword(yytext); } 
-null                                    { PrintKeyword(yytext); } 
+new                                     { return NEW; } 
+null                                    { return NULL_KW; } 
 object                                  { PrintKeyword(yytext); } 
 operator                                { PrintKeyword(yytext); } 
 out                                     { PrintKeyword(yytext); } 
@@ -355,7 +355,7 @@ override                                { PrintKeyword(yytext); }
 params                                  { PrintKeyword(yytext); } 
 private                                 { PrintKeyword(yytext); } 
 protected                               { PrintKeyword(yytext); } 
-public                                  { PrintKeyword(yytext); } 
+public                                  { return PUBLIC; } 
 readonly                                { PrintKeyword(yytext); } 
 ref                                     { PrintKeyword(yytext); } 
 return                                  { return RETURN; } 
@@ -364,13 +364,13 @@ sealed                                  { PrintKeyword(yytext); }
 short                                   { PrintKeyword(yytext); } 
 sizeof                                  { PrintKeyword(yytext); } 
 stackalloc                              { PrintKeyword(yytext); } 
-static                                  { PrintKeyword(yytext); } 
+static                                  { return STATIC; } 
 string                                  { return STRING_KW; } 
 struct                                  { PrintKeyword(yytext); } 
 switch                                  { PrintKeyword(yytext); } 
 this                                    { PrintKeyword(yytext); } 
 throw                                   { PrintKeyword(yytext); } 
-true                                    { PrintKeyword(yytext); } 
+true                                    { return TRUE_KW; } 
 try                                     { PrintKeyword(yytext); } 
 typeof                                  { PrintKeyword(yytext); } 
 uint                                    { PrintKeyword(yytext); } 

@@ -144,6 +144,7 @@ stmt: ';'
     | var_decl ';'
     | var_decl_with_init ';'
     | while_stmt
+    | do_while_stmt
     | for_stmt
     | if_stmt
     | '{' stmt_seq_optional '}'
@@ -158,6 +159,9 @@ stmt_seq_optional:
 ;
 
 while_stmt: WHILE '(' expr ')' stmt         { Print("Found while"); }
+;
+
+do_while_stmt: DO stmt WHILE '(' expr ')'';'         { Print("Found do while"); }
 ;
 
 for_stmt: FOR '(' var_decl ';' expr_optional ';' expr_optional ')' stmt         { Print("Found for"); }

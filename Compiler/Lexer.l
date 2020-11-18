@@ -353,8 +353,8 @@ operator                                { PrintKeyword(yytext); }
 out                                     { PrintKeyword(yytext); } 
 override                                { PrintKeyword(yytext); } 
 params                                  { PrintKeyword(yytext); } 
-private                                 { PrintKeyword(yytext); } 
-protected                               { PrintKeyword(yytext); } 
+private                                 { return PRIVATE; } 
+protected                               { return PROTECTED; } 
 public                                  { return PUBLIC; } 
 readonly                                { PrintKeyword(yytext); } 
 ref                                     { PrintKeyword(yytext); } 

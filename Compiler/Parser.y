@@ -65,6 +65,8 @@ extern FILE* yyin;
 %token TRUE_KW
 %token FALSE_KW
 %token PUBLIC
+%token PROTECTED
+%token PRIVATE
 %token STATIC
 %token CLASS
 %token FOREACH
@@ -207,27 +209,30 @@ method_arguments_optional:
                          | method_arguments
 ;
 
-method_decl: PUBLIC type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                 { Print("Found method decl"); }
-           | PUBLIC array_type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'           { Print("Found method decl with array return type"); }
-           | PUBLIC STATIC type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'          { Print("Found static method decl"); }
-           | PUBLIC STATIC array_type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'    { Print("Found static method decl with array return type"); }
+visibility_modifier: PUBLIC
+                   | PROTECTED
+                   | PRIVATE
 ;
 
-field_decl: PUBLIC var_decl ';'
-          | PUBLIC var_decl_with_init ';'
+method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                 { Print("Found method decl with name:", $3); }
+           | visibility_modifier array_type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'           { Print("Found method decl with array return type with name:", $3); }
 ;
 
-method_field_seq: method_decl
+field_decl: visibility_modifier var_decl ';'                         { Print("Found field decl"); }
+          | visibility_modifier var_decl_with_init ';'               { Print("Found field decl with init"); }
+;
+
+class_members: method_decl
                 | field_decl
-                | method_field_seq method_decl
-                | method_field_seq field_decl
+                | class_members method_decl
+                | class_members field_decl
 ;
 
-method_field_seq_optional: 
-                         | method_field_seq
+class_members_optional: 
+                         | class_members
 ;
 
-class_decl: PUBLIC CLASS IDENTIFIER '{' method_field_seq_optional '}'  { Print("Found class declaration with name:", $3); }
+class_decl: PUBLIC CLASS IDENTIFIER '{' class_members_optional '}'  { Print("Found class declaration with name:", $3); }
                 
 
 %%

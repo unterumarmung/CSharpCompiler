@@ -380,7 +380,7 @@ unsafe                                  { PrintKeyword(yytext); }
 ushort                                  { PrintKeyword(yytext); } 
 using                                   { PrintKeyword(yytext); } 
 virtual                                 { PrintKeyword(yytext); } 
-void                                    { PrintKeyword(yytext); } 
+void                                    { return VOID_KW; } 
 volatile                                { PrintKeyword(yytext); } 
 while                                   { return WHILE; } 
 get                                     { PrintKeyword(yytext); }

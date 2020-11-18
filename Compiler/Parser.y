@@ -60,6 +60,7 @@ extern FILE* yyin;
 %token STRING_KW
 %token BOOL_KW
 %token FLOAT_KW
+%token VOID_KW
 %token NEW
 %token NULL_KW
 %token TRUE_KW
@@ -216,6 +217,7 @@ visibility_modifier: PUBLIC
 
 method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                 { Print("Found method decl with name:", $3); }
            | visibility_modifier array_type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'           { Print("Found method decl with array return type with name:", $3); }
+           | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                 { Print("Found void method decl with name:", $3); }
 ;
 
 field_decl: visibility_modifier var_decl ';'                         { Print("Found field decl"); }

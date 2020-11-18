@@ -334,11 +334,11 @@ finally                                 { PrintKeyword(yytext); }
 fixed                                   { PrintKeyword(yytext); } 
 float                                   { return FLOAT_KW; } 
 for                                     { return FOR; } 
-foreach                                 { PrintKeyword(yytext); } 
+foreach                                 { return FOREACH; } 
 goto                                    { PrintKeyword(yytext); } 
 if                                      { return IF; } 
 implicit                                { PrintKeyword(yytext); } 
-in                                      { PrintKeyword(yytext); } 
+in                                      { return IN_KW; } 
 int                                     { return INT_KW; } 
 interface                               { PrintKeyword(yytext); } 
 internal                                { PrintKeyword(yytext); } 

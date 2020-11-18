@@ -67,6 +67,8 @@ extern FILE* yyin;
 %token PUBLIC
 %token STATIC
 %token CLASS
+%token FOREACH
+%token IN_KW
 
 %right '='
 %left OR
@@ -147,6 +149,7 @@ stmt: ';'
     | do_while_stmt
     | for_stmt
     | if_stmt
+    | foreach_stmt
     | '{' stmt_seq_optional '}'
 ;
 
@@ -169,6 +172,9 @@ for_stmt: FOR '(' var_decl ';' expr_optional ';' expr_optional ')' stmt         
 
 if_stmt: IF '(' expr ')' stmt               { Print("found if"); }
         | IF '(' expr ')' stmt ELSE stmt    { Print("found if/else"); }
+;
+
+foreach_stmt: FOREACH '(' var_decl IN_KW expr ')' stmt        { Print("Found foreach"); }
 ;
 
 standard_type: CHAR_KW

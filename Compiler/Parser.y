@@ -25,6 +25,10 @@ int yylex();
 int yyparse();
 extern FILE* yyin;
 
+/*
+A[5].C[10]
+*/
+
 %}
 
 %union {
@@ -82,7 +86,7 @@ extern FILE* yyin;
 %right '!'
 %left UNARY_MINUS
 %left '.' ']' '['
-%nonassoc ')'
+%nonassoc '(' ')'
 
 %start program
 
@@ -91,18 +95,23 @@ extern FILE* yyin;
 program: class_decl
 ;
 
-value_expr: IDENTIFIER                        { Print("Found id:", $1); }
-    | INTEGER                           { Print("Found integer:", $1); }
-    | FLOATING_POINT                    { Print("Found floating point:", $1); }
-    | STRING                            { Print("Found string:", $1); }
-    | CHARACTER                         { Print("Found character:", $1); }
-    | TRUE_KW
-    | FALSE_KW
-    | value_expr '.' IDENTIFIER
-;       
+access_expr:  '(' expr ')'
+            |  access_expr '[' expr ']'
+            |  access_expr '[' ']'
+            | INTEGER                           { Print("Found integer:", $1); }
+            | FLOATING_POINT                    { Print("Found floating point:", $1); }
+            | STRING                            { Print("Found string:", $1); }
+            | CHARACTER                         { Print("Found character:", $1); }
+            | TRUE_KW
+            | FALSE_KW
+            | IDENTIFIER
+            | IDENTIFIER '(' expr_seq_optional ')'
+            | access_expr '.' IDENTIFIER
+            | access_expr '.' IDENTIFIER       '(' expr_seq_optional ')'          { Print("Found method call"); }
+;
 
-expr: value_expr
-    | expr '+' expr                     { Print("Found binary expression +"); }
+
+expr:  expr '+' expr                    { Print("Found binary expression +"); }
     | expr '-' expr                     { Print("Found binary expression -"); }
     | expr '*' expr                     { Print("Found binary expression *"); }
     | expr '/' expr                     { Print("Found binary expression /"); }
@@ -117,23 +126,16 @@ expr: value_expr
     | expr OR expr                      { Print("Found binary expression ||"); }
     | '!' expr                          { Print("Found unary expression !"); }
     | '-' expr %prec UNARY_MINUS        { Print("Found unary expression -"); }
-    | new_expr
     | NULL_KW
-    | '(' expr ')'
-    | method_call_expr
-;
+    | access_expr 
+    | NEW standard_type 
+    | NEW standard_type '{' expr_seq_optional '}'
+    | NEW '[' ']' '{' expr_seq_optional '}'
 
-method_call_expr: IDENTIFIER '(' expr_seq_optional ')'  { Print("Found method call with name:", $1); }
+;
 
 expr_optional: 
               | expr
-;
-
-new_expr: NEW type '(' expr_seq_optional ')'
-        | NEW type '[' expr ']'
-        | NEW type '[' expr ']' '{' expr_seq_optional '}'
-        | NEW type '[' ']' '{' expr_seq_optional '}'
-        | NEW '[' ']' '{' expr_seq_optional '}'
 ;
 
 expr_seq: expr
@@ -180,30 +182,23 @@ if_stmt: IF '(' expr ')' stmt               { Print("found if"); }
 foreach_stmt: FOREACH '(' var_decl IN_KW expr ')' stmt        { Print("Found foreach"); }
 ;
 
+
 standard_type: CHAR_KW
              | INT_KW
              | BOOL_KW
              | FLOAT_KW
+             | access_expr
 ;
 
-type: standard_type             { Print("Found standard type"); }
-    | IDENTIFIER
-    | type '.' IDENTIFIER
+
+var_decl: standard_type IDENTIFIER                   { Print("Variable decl"); }
 ;
 
-array_type: type '[' ']' 
-;
-
-var_decl: type IDENTIFIER                   { Print("Variable decl"); }
-        | array_type IDENTIFIER             { Print("Array decl"); }      
-;
-
-var_decl_with_init: type IDENTIFIER '=' expr          { Print("Variable decl with init"); }
-                    | array_type IDENTIFIER '=' expr    { Print("Array decl with init"); }
+var_decl_with_init: standard_type IDENTIFIER '=' expr          { Print("Variable decl with init"); }
 ;
 
 method_arguments: var_decl
-                | method_arguments var_decl
+                | method_arguments ',' var_decl
 ;
 
 method_arguments_optional:
@@ -215,9 +210,8 @@ visibility_modifier: PUBLIC
                    | PRIVATE
 ;
 
-method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                 { Print("Found method decl with name:", $3); }
-           | visibility_modifier array_type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'           { Print("Found method decl with array return type with name:", $3); }
-           | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                 { Print("Found void method decl with name:", $3); }
+method_decl: visibility_modifier standard_type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                 { Print("Found method decl with name:", $3); }
+           | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'              { Print("Found void method decl with name:", $3); }
 ;
 
 field_decl: visibility_modifier var_decl ';'                         { Print("Found field decl"); }

@@ -173,7 +173,9 @@ while_stmt: WHILE '(' expr ')' stmt         { Print("Found while"); }
 do_while_stmt: DO stmt WHILE '(' expr ')'';'         { Print("Found do while"); }
 ;
 
-for_stmt: FOR '(' var_decl ';' expr_optional ';' expr_optional ')' stmt         { Print("Found for"); }
+for_stmt: FOR '(' var_decl ';' expr_optional ';' expr_optional ')' stmt                     { Print("Found for"); }
+        |  FOR '(' var_decl_with_init ';' expr_optional ';' expr_optional ')' stmt           { Print("Found for with init"); }
+        |  FOR '(' expr_optional ';' expr_optional ';' expr_optional ')' stmt               { Print("Found for with expr"); }
 ;
 
 if_stmt: IF '(' expr ')' stmt               { Print("found if"); }

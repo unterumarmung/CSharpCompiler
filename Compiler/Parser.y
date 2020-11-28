@@ -74,6 +74,7 @@ A[5].C[10]
 %token PRIVATE
 %token STATIC
 %token CLASS
+%token ENUM
 %token FOREACH
 %token IN_KW
 
@@ -227,6 +228,12 @@ class_members: method_decl
 class_members_optional: 
                          | class_members
 ;
+
+enumerators: IDENTIFIER
+            | enumerators ',' IDENTIFIER
+;
+
+enum_decl: PUBLIC ENUM IDENTIFIER '{' enumerators '}' { Print("Found enum declaration with name:", $3); }
 
 class_decl: PUBLIC CLASS IDENTIFIER '{' class_members_optional '}'  { Print("Found class declaration with name:", $3); }
                 

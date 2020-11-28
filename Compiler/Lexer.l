@@ -325,7 +325,7 @@ delegate                                { PrintKeyword(yytext); }
 do                                      { return DO; } 
 double                                  { PrintKeyword(yytext); } 
 else                                    { return ELSE; } 
-enum                                    { PrintKeyword(yytext); } 
+enum                                    { return ENUM; } 
 event                                   { PrintKeyword(yytext); } 
 explicit                                { PrintKeyword(yytext); } 
 extern                                  { PrintKeyword(yytext); } 

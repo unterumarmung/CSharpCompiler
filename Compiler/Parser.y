@@ -96,7 +96,7 @@ A[5].C[10]
 
 %%
 
-program: class_decl
+program: using_directives_optional namespace_decl_seq
 ;
 
 access_expr:  '(' expr ')'

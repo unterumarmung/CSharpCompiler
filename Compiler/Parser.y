@@ -75,8 +75,11 @@ A[5].C[10]
 %token STATIC
 %token CLASS
 %token ENUM
+%token USING
+%token NAMESPACE
 %token FOREACH
 %token IN_KW
+%token OBJECT
 
 %right '='
 %left OR

@@ -378,7 +378,7 @@ ulong                                   { PrintKeyword(yytext); }
 unchecked                               { PrintKeyword(yytext); } 
 unsafe                                  { PrintKeyword(yytext); } 
 ushort                                  { PrintKeyword(yytext); } 
-using                                   { PrintKeyword(yytext); } 
+using                                   { return USING; } 
 virtual                                 { PrintKeyword(yytext); } 
 void                                    { return VOID_KW; } 
 volatile                                { PrintKeyword(yytext); } 

@@ -269,6 +269,21 @@ namespace_decl_seq: namespace_decl
                    | namespace_decl_seq namespace_decl
 ;
 
+using_arg: IDENTIFIER
+         | using_arg '.' IDENTIFIER
+;
+
+using_directive: USING using_arg ';'  { Print("Found using"); }
+;
+
+using_directives:  using_directive
+                | using_directives using_directive
+;
+
+using_directives_optional: 
+                        | using_directives
+;
+
 %%
 
 #ifdef _MSC_VER

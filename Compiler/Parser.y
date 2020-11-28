@@ -11,6 +11,8 @@
 #include <cstdio>
 #include <iostream>
 
+#include "Tree/Program.h"
+
 void __cdecl yyerror(const char* s) {
 	std::cerr << s << std::endl;
 }
@@ -24,11 +26,7 @@ void Print(Args&&... args) {
 int yylex();
 int yyparse();
 extern FILE* yyin;
-
-/*
-A[5].C[10]
-*/
-
+extern struct Program* treeRoot;
 %}
 
 %union {
@@ -37,7 +35,76 @@ A[5].C[10]
     char* _identifier;
     double _floatingPoint;
     char _character;
+
+    struct AccessExpr* _accessExpr;
+    struct ExprNode* _expr;
+    struct ExprSeqNode* _exprSeq;
+    
+    enum class StandardType _standardType;
+    struct StandardArrayType* _standardArrayType;
+    struct TypeNode* _type;
+    
+    struct VarDeclNode* _varDecl;
+    struct WhileNode* _while;
+    struct DoWhileNode* _doWhile;
+    struct ForNode* _for;
+    struct ForEachNode* _foreach;
+    struct StmtSeqNode* _stmtSeq;
+    struct IfNode* _if;
+    struct StmtNode* _stmt;
+    
+    enum class VisibilityModifier _visibiltyModifier;
+    struct FieldDeclNode* _fieldDecl;
+    struct MethodArguments* _methodArguments;
+    struct MethodDeclNode* _methodDecl;
+    struct ClassMembersNode* _classMembers;
+    struct ClassDeclNode* _classDecl;
+
+    struct IdentifierList* _enumerators;
+    struct EnumDeclNode* _enumDecl;
+
+    struct IdentifierList* _usingArg;
+    struct NamespaceMembersNode* _namespaceMembers;
+    struct NamespaceDeclNode* _namespaceDecl;
+    struct UsingDirectiveNode* _usingDirective;
+    struct UsingDirectives* _usingDirectives;
+    struct NamespaceDeclSeq* _namespaceDeclSeq;
 }
+
+%type <_accessExpr> access_expr
+%type <_expr> expr expr_optional
+%type <_exprSeq> expr_seq expr_seq_optional
+
+%type <_standardType> standard_type
+%type <_standardArrayType> standard_array_type
+%type <_type> type;
+
+%type <_varDecl> var_decl var_decl_with_init
+%type <_while> while_stmt
+%type <_doWhile> do_while_stmt
+%type <_for> for_stmt
+%type <_foreach> foreach_stmt
+%type <_stmtSeq> stmt_seq stmt_seq_optional
+%type <_if> if_stmt
+%type <_stmt> stmt
+
+%type <_visibiltyModifier> visibility_modifier
+%type <_fieldDecl> field_decl
+%type <_methodArguments> method_arguments method_arguments_optional
+%type <_methodDecl> method_decl
+%type <_classMembers> class_members class_members_optional
+%type <_classDecl> class_decl
+
+%type <_enumerators> enumerators
+%type <_enumDecl> enum_decl
+
+%type <_usingArg> using_arg
+%type <_namespaceMembers> namespace_members namespace_members_optional
+%type <_namespaceDecl> namespace_decl
+%type <_usingDirective> using_directive
+%type <_usingDirectives> using_directives using_directives_optional
+%type <_namespaceDeclSeq> namespace_decl_seq
+
 
 %token LESS
 %token GREATER
@@ -96,192 +163,188 @@ A[5].C[10]
 
 %%
 
-program: using_directives_optional namespace_decl_seq
+program: using_directives_optional namespace_decl_seq { treeRoot = new Program($1, $2); }
 ;
 
-access_expr:  '(' expr ')'
-            |  access_expr '[' expr ']'
-            |  access_expr '[' ']'
-            | INTEGER                           { Print("Found integer:", $1); }
-            | FLOATING_POINT                    { Print("Found floating point:", $1); }
-            | STRING                            { Print("Found string:", $1); }
-            | CHARACTER                         { Print("Found character:", $1); }
-            | TRUE_KW
-            | FALSE_KW
-            | IDENTIFIER
-            | IDENTIFIER '(' expr_seq_optional ')'
-            | access_expr '.' IDENTIFIER
-            | access_expr '.' IDENTIFIER       '(' expr_seq_optional ')'          { Print("Found method call"); }
+access_expr:  '(' expr ')'                                                  { $$ = AccessExpr::FromExpr($2); }
+            |  access_expr '[' expr ']'                                     { $$ = AccessExpr::FromBrackets($1, $3); }
+            |  access_expr '[' ']'                                          { $$ = AccessExpr::FromBrackets($1); }
+            | INTEGER                                                       { $$ = AccessExpr::FromInt($1); }
+            | FLOATING_POINT                                                { $$ = AccessExpr::FromFloat($1); }
+            | STRING                                                        { $$ = AccessExpr::FromString($1); }
+            | CHARACTER                                                     { $$ = AccessExpr::FromChar($1); }
+            | TRUE_KW                                                       { $$ = AccessExpr::FromBool(true); }
+            | FALSE_KW                                                      { $$ = AccessExpr::FromBool(false); }
+            | IDENTIFIER                                                    { $$ = AccessExpr::FromId($1); }
+            | IDENTIFIER '(' expr_seq_optional ')'                          { $$ = AccessExpr::FromCall($1, $3); }
+            | access_expr '.' IDENTIFIER                                    { $$ = AccessExpr::FromDot($1, $3); }
+            | access_expr '.' IDENTIFIER '(' expr_seq_optional ')'          { $$ = AccessExpr::FromDot($1, $3, $5); }
 ;
 
 
-expr: expr '+' expr                     { Print("Found binary expression +"); }
-    | expr '-' expr                     { Print("Found binary expression -"); }
-    | expr '*' expr                     { Print("Found binary expression *"); }
-    | expr '/' expr                     { Print("Found binary expression /"); }
-    | expr '=' expr                     { Print("Found binary expression ="); }
-    | expr '<' expr                     { Print("Found binary expression <"); }
-    | expr '>' expr                     { Print("Found binary expression >"); }
-    | expr EQUAL expr                   { Print("Found binary expression =="); }
-    | expr NOT_EQUAL expr               { Print("Found binary expression !="); }
-    | expr LESS_OR_EQUAL expr           { Print("Found binary expression <="); }
-    | expr GREATER_OR_EQUAL expr        { Print("Found binary expression >="); }
-    | expr AND expr                     { Print("Found binary expression &&"); }
-    | expr OR expr                      { Print("Found binary expression ||"); }
-    | '!' expr                          { Print("Found unary expression !"); }
-    | '-' expr %prec UNARY_MINUS        { Print("Found unary expression -"); }
-    | NULL_KW
-    | access_expr 
-    | NEW standard_type 
-    | NEW standard_type '{' expr_seq_optional '}'
-    | NEW '[' ']' '{' expr_seq_optional '}'
-
+expr: expr '+' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::BinPlus, $1, $3); }
+    | expr '-' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::BinMinus, $1, $3); }
+    | expr '*' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Multiply, $1, $3); }
+    | expr '/' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Divide, $1, $3); }
+    | expr '=' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Assign, $1, $3); }
+    | expr '<' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Less, $1, $3); }
+    | expr '>' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Greater, $1, $3); }
+    | expr EQUAL expr                           { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Equal, $1, $3); }
+    | expr NOT_EQUAL expr                       { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::NotEqual, $1, $3); }
+    | expr LESS_OR_EQUAL expr                   { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::LessOrEqual, $1, $3); }
+    | expr GREATER_OR_EQUAL expr                { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::GreaterOrEqual, $1, $3); }
+    | expr AND expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::And, $1, $3); }
+    | expr OR expr                              { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Or, $1, $3); }
+    | '!' expr                                  { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::Not, $2); }
+    | '-' expr %prec UNARY_MINUS                { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::UnaryMinus, $2); }
+    | NULL_KW                                   { $$ = ExprNode::FromNull(); }
+    | access_expr                               { $$ = ExprNode::FromAccessExpr($1); }
+    | NEW type                                  { $$ = ExprNode::FromNew($2); }
+    | NEW type '{' expr_seq_optional '}'        { $$ = ExprNode::FromNew($2, $4); }
+    | NEW '[' ']' '{' expr_seq_optional '}'     { $$ = ExprNode::FromNew(nullptr, $5); }
 ;
 
-expr_optional: 
-              | expr
+expr_optional:                  { $$ = nullptr; }
+              | expr            { $$ = $1; }
 ;
 
-expr_seq: expr
-        | expr_seq ',' expr
+expr_seq: expr                  { $$ = new ExprSeqNode($1); }
+        | expr_seq ',' expr     { $$ -> Add($3); }
 ;
 
-expr_seq_optional:
-                 | expr_seq
+expr_seq_optional:              { $$ = ExprSeqNode::MakeEmpty(); }
+                 | expr_seq     { $$ = $1; }
 ;
 
-stmt: ';'
-    | expr ';'
-    | var_decl ';'
-    | var_decl_with_init ';'
-    | while_stmt
-    | do_while_stmt
-    | for_stmt
-    | if_stmt
-    | foreach_stmt
-    | '{' stmt_seq_optional '}'
+stmt: ';'                           { $$ = new StmtNode(); }
+    | expr ';'                      { $$ = new StmtNode($1, /* isReturn= */ false); }
+    | var_decl ';'                  { $$ = new StmtNode($1); }
+    | var_decl_with_init ';'        { $$ = new StmtNode($1); }
+    | while_stmt                    { $$ = new StmtNode($1); }
+    | do_while_stmt                 { $$ = new StmtNode($1); }
+    | for_stmt                      { $$ = new StmtNode($1); }
+    | if_stmt                       { $$ = new StmtNode($1); }
+    | foreach_stmt                  { $$ = new StmtNode($1); }
+    | '{' stmt_seq_optional '}'     { $$ = new StmtNode($2); }
+    | RETURN expr ';'               { $$ = new StmtNode($2, /* isReturn= */ true); }
 ;
 
-stmt_seq: stmt              { Print("Found stmt"); }
-        | stmt_seq stmt     { Print("Found stmt"); }
+stmt_seq: stmt              { $$ = new StmtSeqNode($1); }
+        | stmt_seq stmt     { $$ -> Add($2); }
+;
+stmt_seq_optional:          { $$ = StmtSeqNode::MakeEmpty(); }
+                | stmt_seq  { $$ = $1; }
 ;
 
-stmt_seq_optional:
-                | stmt_seq
+while_stmt: WHILE '(' expr ')' stmt                 { $$ = new WhileNode($3, $5); }
+;
+do_while_stmt: DO stmt WHILE '(' expr ')'';'        { $$ = new DoWhileNode($5, $2); }
 ;
 
-while_stmt: WHILE '(' expr ')' stmt         { Print("Found while"); }
+for_stmt: FOR '(' var_decl ';' expr_optional ';' expr_optional ')' stmt                     { $$ = new ForNode($3, $5, $7, $9); }
+        |  FOR '(' var_decl_with_init ';' expr_optional ';' expr_optional ')' stmt          { $$ = new ForNode($3, $5, $7, $9); }
+        |  FOR '(' expr_optional ';' expr_optional ';' expr_optional ')' stmt               { $$ = new ForNode($3, $5, $7, $9); }
 ;
 
-do_while_stmt: DO stmt WHILE '(' expr ')'';'         { Print("Found do while"); }
+if_stmt: IF '(' expr ')' stmt               { $$ = new IfNode($3, $5); }
+        | IF '(' expr ')' stmt ELSE stmt    { $$ = new IfNode($3, $7); }
 ;
 
-for_stmt: FOR '(' var_decl ';' expr_optional ';' expr_optional ')' stmt                     { Print("Found for"); }
-        |  FOR '(' var_decl_with_init ';' expr_optional ';' expr_optional ')' stmt           { Print("Found for with init"); }
-        |  FOR '(' expr_optional ';' expr_optional ';' expr_optional ')' stmt               { Print("Found for with expr"); }
+foreach_stmt: FOREACH '(' var_decl IN_KW expr ')' stmt      { $$ = new ForEachNode($3, $5, $7); }
 ;
 
-if_stmt: IF '(' expr ')' stmt               { Print("found if"); }
-        | IF '(' expr ')' stmt ELSE stmt    { Print("found if/else"); }
+standard_type: CHAR_KW      { $$ = StandardType::Char; }
+             | INT_KW       { $$ = StandardType::Int; }
+             | BOOL_KW      { $$ = StandardType::Bool; }
+             | FLOAT_KW     { $$ = StandardType::Float; }
+             | STRING_KW    { $$ = StandardType::String; }
 ;
 
-foreach_stmt: FOREACH '(' var_decl IN_KW expr ')' stmt        { Print("Found foreach"); }
+standard_array_type: standard_type '[' ']'          { $$ = new StandardArrayType{ $1, 1 }; }
+                   | standard_array_type '[' ']'    { $$ -> Arity += 1; }
 ;
 
-standard_type: CHAR_KW
-             | INT_KW
-             | BOOL_KW
-             | FLOAT_KW
-             
+type: standard_type         { $$ = new TypeNode($1); }
+    | standard_array_type   { $$ = new TypeNode(* $1); delete $1; }
+    | access_expr           { $$ = new TypeNode($1); }
 ;
 
-standard_array_type: standard_type '[' ']'
-                   | standard_array_type '[' ']'
+var_decl: type IDENTIFIER                           { $$ = new VarDeclNode($1, $2, nullptr); }
+;
+var_decl_with_init: type IDENTIFIER '=' expr        { $$ = new VarDeclNode($1, $2, $4); }
 ;
 
-type: standard_type
-    | standard_array_type
-    | access_expr
+method_arguments: var_decl                          { $$ = new MethodArguments($1); }
+                | method_arguments ',' var_decl     { $$ -> Add($3); }
+;
+method_arguments_optional:                          { $$ = MethodArguments::MakeEmpty(); }
+                         | method_arguments         { $$ = $1; }
 ;
 
-var_decl: type IDENTIFIER                   { Print("Variable decl with name", $2); }
+visibility_modifier: PUBLIC         { $$ = VisibilityModifier::Public; }
+                   | PROTECTED      { $$ = VisibilityModifier::Protected; }
+                   | PRIVATE        { $$ = VisibilityModifier::Private; }
 ;
 
-var_decl_with_init: type IDENTIFIER '=' expr          { Print("Variable decl with init"); }
+method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'      { $$ = new MethodDeclNode($1, $2, $3, $5, $8); }
+           | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'   { $$ = new MethodDeclNode($1, nullptr, $3, $5, $8); }
 ;
 
-method_arguments: var_decl
-                | method_arguments ',' var_decl
+field_decl: visibility_modifier var_decl ';'              { $$ = new FieldDeclNode($1, $2); }
+          | visibility_modifier var_decl_with_init ';'    { $$ = new FieldDeclNode($1, $2); }
+;
+    
+class_members: method_decl                  { $$ = new ClassMembersNode(); $$ -> Add($1); }
+                | field_decl                { $$ = new ClassMembersNode(); $$ -> Add($1); }
+                | class_members method_decl { $$ -> Add($2); }
+                | class_members field_decl  { $$ -> Add($2); }
 ;
 
-method_arguments_optional:
-                         | method_arguments
+class_members_optional:                     { $$ = new ClassMembersNode(); }
+                         | class_members    { $$ = $1; }
 ;
 
-visibility_modifier: PUBLIC
-                   | PROTECTED
-                   | PRIVATE
-;
-
-method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                 { Print("Found method decl with name:", $3); }
-           | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'              { Print("Found void method decl with name:", $3); }
-;
-
-field_decl: visibility_modifier var_decl ';'                         { Print("Found field decl"); }
-          | visibility_modifier var_decl_with_init ';'               { Print("Found field decl with init"); }
-;
-
-class_members: method_decl
-                | field_decl
-                | class_members method_decl
-                | class_members field_decl
-;
-
-class_members_optional: 
-                         | class_members
-;
-
-enumerators: IDENTIFIER
-            | enumerators ',' IDENTIFIER
+enumerators: IDENTIFIER                     { $$ = new IdentifierList(); $$ -> Add($1); }
+            | enumerators ',' IDENTIFIER    { $$ -> Add($3); }
 ;
 
 enum_decl: PUBLIC ENUM IDENTIFIER '{' enumerators '}' { Print("Found enum declaration with name:", $3); }
 
-class_decl: PUBLIC CLASS IDENTIFIER '{' class_members_optional '}'  { Print("Found class declaration with name:", $3); }
-          | PUBLIC CLASS IDENTIFIER ':' using_arg '{' class_members_optional '}'  { Print("Found class declaration with inheritance with name:", $3); }
-          | PUBLIC CLASS IDENTIFIER ':' OBJECT '{' class_members_optional '}'  { Print("Found class declaration with inheritance with name:", $3); }
+class_decl: PUBLIC CLASS IDENTIFIER '{' class_members_optional '}'                  { $$ = new ClassDeclNode($3, nullptr, $5); }
+          | PUBLIC CLASS IDENTIFIER ':' using_arg '{' class_members_optional '}'    { $$ = new ClassDeclNode($3, $5, $7); }
+          | PUBLIC CLASS IDENTIFIER ':' OBJECT '{' class_members_optional '}'       { $$ = new ClassDeclNode($3, nullptr, $7); }
 ;
                 
-namespace_members: enum_decl
-                | class_decl
-                | namespace_members enum_decl
-                | namespace_members class_decl
+namespace_members: enum_decl                    { $$ = new NamespaceMembersNode(); $$ -> Add($1); }           
+                | class_decl                    { $$ = new NamespaceMembersNode(); $$ -> Add($1); }           
+                | namespace_members enum_decl   { $$ -> Add($2); }           
+                | namespace_members class_decl  { $$ -> Add($2); }
 ;
 
-namespace_members_optional:
-                            | namespace_members
+namespace_members_optional:                         { $$ = new NamespaceMembersNode(); }
+                            | namespace_members     { $$ = $1; }
 ;
 
-namespace_decl: NAMESPACE IDENTIFIER '{' namespace_members_optional '}' { Print("Found namespace declaration with name:", $2); }
+namespace_decl: NAMESPACE IDENTIFIER '{' namespace_members_optional '}' { $$ = new NamespaceDeclNode($2, $4);  }
 ;
 
-namespace_decl_seq: namespace_decl
-                   | namespace_decl_seq namespace_decl
+namespace_decl_seq: namespace_decl                      { $$ = new NamespaceDeclSeq($1); }
+                   | namespace_decl_seq namespace_decl  { $$ -> Add($2); }
 ;
 
-using_arg: IDENTIFIER
-         | using_arg '.' IDENTIFIER
+using_arg: IDENTIFIER                   { $$ = new IdentifierList(); $$ -> Add($1); }
+         | using_arg '.' IDENTIFIER     { $$ -> Add($3); }
 ;
 
-using_directive: USING using_arg ';'  { Print("Found using"); }
+using_directive: USING using_arg ';'    { $$ = new UsingDirectiveNode($2); }
 ;
 
-using_directives:  using_directive
-                | using_directives using_directive
+using_directives:  using_directive                  { $$ = new UsingDirectives($1); }
+                | using_directives using_directive  { $$ -> Add($2); }
 ;
 
-using_directives_optional: 
-                        | using_directives
+using_directives_optional:                  { $$ = UsingDirectives::MakeEmpty();  }
+                        | using_directives  { $$ = $1; }
 ;
 
 %%
@@ -290,16 +353,3 @@ using_directives_optional:
 #pragma warning( pop )
 #endif // _MSC_VER
 
-int main(int argc, char** argv) 
-{
-    if (argc > 1)
-    {
-        const auto errorCode = fopen_s(&yyin, argv[1], "r");
-    }
-    else 
-    {
-        yyin = stdin;
-    }
-
-    yyparse();
-}

@@ -345,7 +345,7 @@ internal                                { PrintKeyword(yytext); }
 is                                      { PrintKeyword(yytext); } 
 lock                                    { PrintKeyword(yytext); } 
 long                                    { PrintKeyword(yytext); } 
-namespace                               { PrintKeyword(yytext); } 
+namespace                               { return NAMESPACE; } 
 new                                     { return NEW; } 
 null                                    { return NULL_KW; } 
 object                                  { return OBJECT; } 

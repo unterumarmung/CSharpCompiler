@@ -249,6 +249,22 @@ class_decl: PUBLIC CLASS IDENTIFIER '{' class_members_optional '}'  { Print("Fou
           | PUBLIC CLASS IDENTIFIER ':' OBJECT '{' class_members_optional '}'  { Print("Found class declaration with inheritance with name:", $3); }
 ;
                 
+namespace_members: enum_decl
+                | class_decl
+                | namespace_members enum_decl
+                | namespace_members class_decl
+;
+
+namespace_members_optional:
+                            | namespace_members
+;
+
+namespace_decl: NAMESPACE IDENTIFIER '{' namespace_members_optional '}' { Print("Found namespace declaration with name:", $2); }
+;
+
+namespace_decl_seq: namespace_decl
+                   | namespace_decl_seq namespace_decl
+;
 
 %%
 

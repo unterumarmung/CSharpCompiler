@@ -23,7 +23,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Lexer.flex.cpp" />
+    <ClCompile Include="Main.cpp" />
     <ClCompile Include="Parser.tab.cpp" />
+    <ClCompile Include="Tree\AccessExpr.cpp" />
+    <ClCompile Include="Tree\Class.cpp" />
+    <ClCompile Include="Tree\Expr.cpp" />
+    <ClCompile Include="Tree\Stmt.cpp" />
+    <ClCompile Include="Tree\Type.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Bison Include="Parser.y">
@@ -39,6 +45,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Parser.tab.h" />
+    <ClInclude Include="Tree\AccessExpr.h" />
+    <ClInclude Include="Tree\Class.h" />
+    <ClInclude Include="Tree\Enum.h" />
+    <ClInclude Include="Tree\Expr.h" />
+    <ClInclude Include="Tree\Node.h" />
+    <ClInclude Include="Tree\Program.h" />
+    <ClInclude Include="Tree\Stmt.h" />
+    <ClInclude Include="Tree\Type.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

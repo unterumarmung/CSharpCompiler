@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Ast">
+      <UniqueIdentifier>{ce56b092-1c60-4420-b3ba-af3642f9cc72}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Flex Include="Lexer.l">
@@ -26,6 +29,24 @@
     <ClCompile Include="Parser.tab.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="Tree\Type.cpp">
+      <Filter>Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="Tree\Expr.cpp">
+      <Filter>Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="Tree\AccessExpr.cpp">
+      <Filter>Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="Tree\Stmt.cpp">
+      <Filter>Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="Tree\Class.cpp">
+      <Filter>Ast</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Bison Include="Parser.y">
@@ -35,6 +56,30 @@
   <ItemGroup>
     <ClInclude Include="Parser.tab.h">
       <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Tree\Type.h">
+      <Filter>Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="Tree\Node.h">
+      <Filter>Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="Tree\Expr.h">
+      <Filter>Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="Tree\AccessExpr.h">
+      <Filter>Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="Tree\Stmt.h">
+      <Filter>Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="Tree\Class.h">
+      <Filter>Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="Tree\Enum.h">
+      <Filter>Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="Tree\Program.h">
+      <Filter>Ast</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

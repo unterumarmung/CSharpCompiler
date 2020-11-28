@@ -238,6 +238,9 @@ enumerators: IDENTIFIER
 enum_decl: PUBLIC ENUM IDENTIFIER '{' enumerators '}' { Print("Found enum declaration with name:", $3); }
 
 class_decl: PUBLIC CLASS IDENTIFIER '{' class_members_optional '}'  { Print("Found class declaration with name:", $3); }
+          | PUBLIC CLASS IDENTIFIER ':' using_arg '{' class_members_optional '}'  { Print("Found class declaration with inheritance with name:", $3); }
+          | PUBLIC CLASS IDENTIFIER ':' OBJECT '{' class_members_optional '}'  { Print("Found class declaration with inheritance with name:", $3); }
+;
                 
 
 %%

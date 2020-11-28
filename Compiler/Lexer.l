@@ -348,7 +348,7 @@ long                                    { PrintKeyword(yytext); }
 namespace                               { PrintKeyword(yytext); } 
 new                                     { return NEW; } 
 null                                    { return NULL_KW; } 
-object                                  { PrintKeyword(yytext); } 
+object                                  { return OBJECT; } 
 operator                                { PrintKeyword(yytext); } 
 out                                     { PrintKeyword(yytext); } 
 override                                { PrintKeyword(yytext); } 

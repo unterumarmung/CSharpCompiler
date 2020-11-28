@@ -112,7 +112,7 @@ access_expr:  '(' expr ')'
 ;
 
 
-expr:  expr '+' expr                    { Print("Found binary expression +"); }
+expr: expr '+' expr                     { Print("Found binary expression +"); }
     | expr '-' expr                     { Print("Found binary expression -"); }
     | expr '*' expr                     { Print("Found binary expression *"); }
     | expr '/' expr                     { Print("Found binary expression /"); }
@@ -185,19 +185,26 @@ if_stmt: IF '(' expr ')' stmt               { Print("found if"); }
 foreach_stmt: FOREACH '(' var_decl IN_KW expr ')' stmt        { Print("Found foreach"); }
 ;
 
-
 standard_type: CHAR_KW
              | INT_KW
              | BOOL_KW
              | FLOAT_KW
-             | access_expr
+             
 ;
 
-
-var_decl: standard_type IDENTIFIER                   { Print("Variable decl"); }
+standard_array_type: standard_type '[' ']'
+                   | standard_array_type '[' ']'
 ;
 
-var_decl_with_init: standard_type IDENTIFIER '=' expr          { Print("Variable decl with init"); }
+type: standard_type
+    | standard_array_type
+    | access_expr
+;
+
+var_decl: type IDENTIFIER                   { Print("Variable decl with name", $2); }
+;
+
+var_decl_with_init: type IDENTIFIER '=' expr          { Print("Variable decl with init"); }
 ;
 
 method_arguments: var_decl
@@ -213,7 +220,7 @@ visibility_modifier: PUBLIC
                    | PRIVATE
 ;
 
-method_decl: visibility_modifier standard_type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                 { Print("Found method decl with name:", $3); }
+method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                 { Print("Found method decl with name:", $3); }
            | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'              { Print("Found void method decl with name:", $3); }
 ;
 

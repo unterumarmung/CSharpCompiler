@@ -9,6 +9,21 @@ enum class VisibilityModifier
     Private
 };
 
+inline std::string_view ToString(VisibilityModifier modifier)
+{
+    switch (modifier)
+    {
+    case VisibilityModifier::Public:
+        return "public";
+    case VisibilityModifier::Protected:
+        return "protected";
+    case VisibilityModifier::Private:
+        return "private";
+    default:
+        return "unknown";
+    }
+}
+
 struct FieldDeclNode final : Node
 {
     const VisibilityModifier Visibility;
@@ -16,7 +31,7 @@ struct FieldDeclNode final : Node
 
     FieldDeclNode(const VisibilityModifier visibility, VarDeclNode* const varDecl)
         : Visibility{ visibility }
-        , VarDecl{ varDecl }
+      , VarDecl{ varDecl }
     {
     }
 
@@ -27,10 +42,7 @@ struct FieldDeclNode final : Node
 struct MethodArguments final : NodeSeq<MethodArguments, VarDeclNode>
 {
     using NodeSeq<MethodArguments, VarDeclNode>::NodeSeq;
-    [[nodiscard]] std::string_view Name() const noexcept override
-    {
-        return "MethodArguments";
-    }
+    [[nodiscard]] std::string_view Name() const noexcept override { return "MethodArguments"; }
 };
 
 struct MethodDeclNode final : Node
@@ -43,12 +55,12 @@ struct MethodDeclNode final : Node
 
 
     MethodDeclNode(const VisibilityModifier visibility, const TypeNode* const type, const std::string_view identifier,
-        const MethodArguments* const arguments, const StmtSeqNode* const body)
+                   const MethodArguments* const arguments, const StmtSeqNode* const body)
         : Visibility{ visibility }
-        , Type{ type }
-        , Identifier{ identifier }
-        , Arguments{ arguments }
-        , Body{ body }
+      , Type{ type }
+      , Identifier{ identifier }
+      , Arguments{ arguments }
+      , Body{ body }
     {
     }
 

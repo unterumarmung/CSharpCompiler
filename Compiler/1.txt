@@ -1,0 +1,27 @@
+using System;
+using System.Collections.Generic;
+namespace A
+{
+    public class B
+    {
+       
+        public void C(int a, int b)
+        {
+            int[][][] array;
+            return array;
+        }
+    }
+
+    public class C : System.IEnumerable
+    {
+        public IEnumerable VV()
+        {
+            for (int i = 0; i < 25; i = i + 1)
+            {
+                ;
+            }
+        }
+    }
+
+    public class V : object {}
+}

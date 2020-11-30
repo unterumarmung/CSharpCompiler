@@ -22,6 +22,7 @@
     <Flex Include="Lexer.l" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Dot.cpp" />
     <ClCompile Include="Lexer.flex.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Parser.tab.cpp" />
@@ -44,6 +45,7 @@
     </Bison>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Dot.h" />
     <ClInclude Include="Parser.tab.h" />
     <ClInclude Include="Tree\AccessExpr.h" />
     <ClInclude Include="Tree\Class.h" />

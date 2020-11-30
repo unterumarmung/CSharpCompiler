@@ -47,6 +47,9 @@
     <ClCompile Include="Main.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="Dot.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Bison Include="Parser.y">
@@ -80,6 +83,9 @@
     </ClInclude>
     <ClInclude Include="Tree\Program.h">
       <Filter>Ast</Filter>
+    </ClInclude>
+    <ClInclude Include="Dot.h">
+      <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,12 +1,15 @@
 #pragma once
 #include <string_view>
 #include <vector>
+
 struct Node
 {
     using IdType = size_t;
     const IdType Id;
 
-    Node() : Id { NextId() } {}
+    Node() : Id{ NextId() }
+    {
+    }
 
     Node(const Node& other) = delete;
 
@@ -28,26 +31,21 @@ protected:
     }
 };
 
-template <typename TDerived, typename TNode> 
+template <typename TDerived, typename TNode>
 struct NodeSeq : Node
 {
-    [[nodiscard]] bool IsEmpty() const noexcept
-    {
-        return _seq.empty();
-    }
+    [[nodiscard]] bool IsEmpty() const noexcept { return _seq.empty(); }
 
     static TDerived* MakeEmpty() { return new TDerived; }
 
     void Add(TNode* node) { _seq.push_back(node); }
 
-    explicit NodeSeq(TNode* node) : Node()
-    {
-        _seq.push_back(node);
-    }
+    explicit NodeSeq(TNode* node) : Node() { _seq.push_back(node); }
 
     [[nodiscard]] const std::vector<TNode*>& GetSeq() const { return _seq; }
 protected:
     std::vector<TNode*> _seq{};
+
     NodeSeq() : Node()
     {
     }

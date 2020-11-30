@@ -8,7 +8,7 @@ struct EnumDeclNode final : Node
 
     EnumDeclNode(const std::string_view enumName, IdentifierList* const enumerators)
         : EnumName{ enumName }
-        , Enumerators{ enumerators }
+      , Enumerators{ enumerators }
     {
     }
 

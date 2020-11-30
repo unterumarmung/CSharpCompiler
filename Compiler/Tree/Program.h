@@ -23,7 +23,7 @@ struct NamespaceDeclNode final : Node
 
     NamespaceDeclNode(const std::string_view namespaceName, NamespaceMembersNode* const members)
         : NamespaceName{ namespaceName }
-        , Members{ members }
+      , Members{ members }
     {
     }
 
@@ -53,7 +53,7 @@ struct NamespaceDeclSeq final : NodeSeq<NamespaceDeclSeq, NamespaceDeclNode>
 {
     using NodeSeq<NamespaceDeclSeq, NamespaceDeclNode>::NodeSeq;
 
-    [[nodiscard]] std::string_view Name() const noexcept override { return "NamespaceDeclSeq"; }
+    [[nodiscard]] std::string_view Name() const noexcept override { return "Namespace Declarations"; }
 };
 
 struct Program final : Node
@@ -63,7 +63,7 @@ struct Program final : Node
 
     Program(UsingDirectives* const usings, NamespaceDeclSeq* const namespaces)
         : Usings{ usings }
-        , Namespaces{ namespaces }
+      , Namespaces{ namespaces }
     {
     }
 

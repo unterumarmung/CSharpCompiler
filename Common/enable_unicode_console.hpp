@@ -4,7 +4,8 @@
 #pragma execution_character_set("utf-8")
 #endif // _MSC_VER >= 1910
 #include <Windows.h>
-const auto ENABLE_UNICODE_CONSOLE = []() {
+const auto ENABLE_UNICODE_CONSOLE = []()
+{
     SetConsoleCP(65001);
     SetConsoleOutputCP(65001);
     return 0;

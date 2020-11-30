@@ -11,17 +11,48 @@ enum class StandardType
     String
 };
 
+inline std::string ToString(const StandardType type)
+{
+    switch (type)
+    {
+    case StandardType::Char:
+        return "char";
+    case StandardType::Int:
+        return "int";
+    case StandardType::Bool:
+        return "bool";
+    case StandardType::Float:
+        return "float";
+    case StandardType::String:
+        return "string";
+    }
+    return {};
+}
+
 struct StandardArrayType
 {
     StandardType Type{};
     size_t Arity{ 1 };
 };
 
-struct TypeNode : Node
+inline std::string ToString(const StandardArrayType type)
+{
+    auto res = ToString(type.Type);
+    res.reserve(res.size() + type.Arity * 2);
+    for (auto i = 0u; i < type.Arity; ++i) { res += "[]"; }
+    return res;
+}
+
+struct TypeNode final : Node
 {
     [[nodiscard]] std::string_view Name() const noexcept override { return "Type"; }
 
-    enum class TypeT { StdType, StdArrType, AccessExpr } Type{};
+    enum class TypeT
+    {
+        StdType,
+        StdArrType,
+        AccessExpr
+    } Type{};
 
     StandardType StdType{};
     StandardArrayType StdArrType{};
@@ -29,20 +60,19 @@ struct TypeNode : Node
 
 
     explicit TypeNode(const StandardType stdType)
-        : Type{ TypeT::StdType }
-        , StdType{ stdType }
+        : StdType{ stdType }
     {
     }
 
     explicit TypeNode(const StandardArrayType stdArrType)
         : Type{ TypeT::StdArrType }
-        , StdArrType{ stdArrType }
+      , StdArrType{ stdArrType }
     {
     }
 
     explicit TypeNode(AccessExpr* const accessExpr)
         : Type{ TypeT::AccessExpr }
-        , Access{ accessExpr }
+      , Access{ accessExpr }
     {
     }
 };

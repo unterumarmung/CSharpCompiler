@@ -11,15 +11,15 @@ struct VarDeclNode final : Node
 
     VarDeclNode(TypeNode* const varType, const char* const identifier, ExprNode* const initExpr)
         : VarType{ varType }
-        , Identifier{ identifier }
-        , InitExpr{ initExpr }
+      , Identifier{ identifier }
+      , InitExpr{ initExpr }
     {
     }
 
 
     [[nodiscard]] std::string_view Name() const noexcept override
     {
-        if (InitExpr)
+        if (!InitExpr)
             return "VarDecl";
         return "VarDeclWithInit";
     }
@@ -35,7 +35,7 @@ struct WhileNode final : Node
 
     WhileNode(ExprNode* const condition, StmtNode* const body)
         : Condition{ condition }
-        , Body{ body }
+      , Body{ body }
     {
     }
 
@@ -49,7 +49,7 @@ struct DoWhileNode final : Node
 
     DoWhileNode(ExprNode* const condition, StmtNode* const body)
         : Condition{ condition }
-        , Body{ body }
+      , Body{ body }
     {
     }
 
@@ -67,18 +67,18 @@ struct ForNode final : Node
 
     ForNode(VarDeclNode* const varDecl, ExprNode* const condition, ExprNode* const iterExpr, StmtNode* const body)
         : VarDecl{ varDecl }
-        , Condition{ condition }
-        , IterExpr{ iterExpr }
-        , Body{ body }
+      , Condition{ condition }
+      , IterExpr{ iterExpr }
+      , Body{ body }
     {
     }
 
 
     ForNode(ExprNode* const firstExpr, ExprNode* const condition, ExprNode* const iterExpr, StmtNode* const body)
         : FirstExpr{ firstExpr }
-        , Condition{ condition }
-        , IterExpr{ iterExpr }
-        , Body{ body }
+      , Condition{ condition }
+      , IterExpr{ iterExpr }
+      , Body{ body }
     {
     }
 
@@ -93,8 +93,8 @@ struct ForEachNode final : Node
 
     ForEachNode(VarDeclNode* const varDecl, ExprNode* const expr, StmtNode* const stmt)
         : VarDecl{ varDecl }
-        , Expr{ expr }
-        , Body{ stmt }
+      , Expr{ expr }
+      , Body{ stmt }
     {
     }
 
@@ -105,6 +105,7 @@ struct ForEachNode final : Node
 struct StmtSeqNode final : NodeSeq<StmtSeqNode, StmtNode>
 {
     using NodeSeq<StmtSeqNode, StmtNode>::NodeSeq;
+
     [[nodiscard]] std::string_view Name() const noexcept override
     {
         if (IsEmpty())
@@ -121,15 +122,15 @@ struct IfNode : Node
 
     IfNode(ExprNode* const condition, StmtNode* const thenBranch, StmtNode* const elseBranch = nullptr)
         : Condition{ condition }
-        , ThenBranch{ thenBranch }
-        , ElseBranch{ elseBranch }
+      , ThenBranch{ thenBranch }
+      , ElseBranch{ elseBranch }
     {
     }
 
     [[nodiscard]] std::string_view Name() const noexcept override { return "If"; }
 };
 
-struct StmtNode :Node
+struct StmtNode final : Node
 {
     enum class TypeT
     {
@@ -156,47 +157,55 @@ struct StmtNode :Node
 
 
     explicit StmtNode(VarDeclNode* const varDecl)
-        : Type{ TypeT::VarDecl }, VarDecl{ varDecl }
+        : Type{ TypeT::VarDecl }
+      , VarDecl{ varDecl }
     {
     }
 
 
     explicit StmtNode(WhileNode* const while_)
-        : Type{ TypeT::While }, While{ while_ }
+        : Type{ TypeT::While }
+      , While{ while_ }
     {
     }
 
 
     explicit StmtNode(DoWhileNode* const doWhile)
-        : Type{ TypeT::DoWhile }, DoWhile{ doWhile }
+        : Type{ TypeT::DoWhile }
+      , DoWhile{ doWhile }
     {
     }
 
     explicit StmtNode(ForNode* const for_)
-        : Type{ TypeT::For }, For{ for_ }
+        : Type{ TypeT::For }
+      , For{ for_ }
     {
     }
 
     explicit StmtNode(ForEachNode* const forEach)
-        : Type{ TypeT::Foreach }, ForEach{ forEach }
+        : Type{ TypeT::Foreach }
+      , ForEach{ forEach }
     {
     }
 
 
     explicit StmtNode(StmtSeqNode* const block)
-        : Type{ TypeT::BlockStmt }, Block{ block }
+        : Type{ TypeT::BlockStmt }
+      , Block{ block }
     {
     }
 
 
     explicit StmtNode(IfNode* const if_)
-        : Type{ TypeT::IfStmt }, If{ if_ }
+        : Type{ TypeT::IfStmt }
+      , If{ if_ }
     {
     }
 
 
     explicit StmtNode(ExprNode* const expr, const bool isReturn)
-        : Type{ isReturn ? TypeT::Return : TypeT::ExprStmt }, Expr{ expr }
+        : Type{ isReturn ? TypeT::Return : TypeT::ExprStmt }
+      , Expr{ expr }
     {
     }
 

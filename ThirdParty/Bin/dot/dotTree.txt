@@ -1,0 +1,120 @@
+graph tree{
+0 [label="<Program>" shape=box];
+1 [label="<File>" shape=box];
+2 [label="<BodyOfFile>" shape=box];
+3 [label="<Namespace>
+test" shape=box];
+4 [label="<Class>
+Program" shape=box];
+5 [label="<BodyOfClass>" shape=box];
+6 [label="<Method> static" shape=box];
+7 [label="void"];
+6 -- 7;
+8 [label="<ID>
+Main"];
+6 -- 8;
+9 [label="<FormalArguments>" shape=trapezium];
+10 [label="<ArrayDeclaration>" shape=box];
+11 [label="string"];
+10 -- 11;
+12 [label="<ID>
+args"];
+10 -- 12;
+9 -- 10;
+6 -- 9;
+13 [label="<Body>" shape=box];
+14 [label="=" shape=box];
+15 [label="<Appeal>
+" shape=box];
+16 [label="<ArrayElement>" shape=box];
+17 [label="<Appeal>
+" shape=box];
+18 [label="<MethodCall>" shape=box];
+19 [label="<MethodName>
+function" shape=box];
+18 -- 19;
+20 [label="<FactArguments>" shape=trapezium];
+18 -- 20;
+17 -- 18;
+16 -- 17;
+21 [label="0"];
+16 -- 21;
+15 -- 16;
+22 [label="<ID>
+var"];
+16 -- 22;
+14 -- 15;
+23 [label="100"];
+14 -- 23;
+13 -- 14;
+6 -- 13;
+5 -- 6;
+24 [label="<Method>" shape=box];
+25 [label="<Appeal>
+" shape=box];
+26 [label="<ID>
+testClass"];
+25 -- 26;
+24 -- 25;
+27 [label="<ID>
+function"];
+24 -- 27;
+28 [label="<FormalArguments>" shape=trapezium];
+24 -- 28;
+29 [label="<Body>" shape=box];
+30 [label="<ArrayDeclaration>" shape=box];
+31 [label="<Appeal>
+" shape=box];
+32 [label="<ID>
+testClass"];
+31 -- 32;
+30 -- 31;
+33 [label="<ID>
+array"];
+30 -- 33;
+34 [label="<Initialization>" shape=box];
+30 -- 34;
+35 [label="new" shape=box];
+36 [label="<Appeal>
+" shape=box];
+37 [label="<ArrayElement>" shape=box];
+38 [label="<Appeal>
+" shape=box];
+39 [label="<ID>
+testClass"];
+38 -- 39;
+37 -- 38;
+40 [label="2"];
+37 -- 40;
+36 -- 37;
+35 -- 36;
+34 -- 35;
+29 -- 30;
+41 [label="<Return>" shape=box];
+42 [label="<Appeal>
+" shape=box];
+43 [label="<ID>
+array"];
+42 -- 43;
+41 -- 42;
+29 -- 41;
+24 -- 29;
+5 -- 24;
+4 -- 5;
+3 -- 4;
+44 [label="<Class>
+testClass" shape=box];
+45 [label="<BodyOfClass>" shape=box];
+46 [label="<VariableDeclaration>" shape=box];
+47 [label="int"];
+46 -- 47;
+48 [label="<ID>
+var"];
+46 -- 48;
+45 -- 46;
+44 -- 45;
+3 -- 44;
+2 -- 3;
+1 -- 2;
+0 -- 1;
+}

@@ -1,8 +1,9 @@
 #include "Dot.h"
 
-
 #include <process.h>
 #include <string>
+
+using namespace std::string_literals;
 
 void ToDot(AccessExpr* node, std::ostream& out);
 
@@ -168,7 +169,6 @@ void ToDot(const TypeNode* node, std::ostream& out)
 
 void ToDot(ExprNode* const node, std::ostream& out)
 {
-    if (node->Type != ExprNode::TypeT::AccessExpr) { out << MakeNode(node->Id, ToString(node->Type)); }
     if (node->Type == ExprNode::TypeT::AccessExpr)
     {
         out << MakeNode(node->Id, "AccessExpr");
@@ -176,6 +176,11 @@ void ToDot(ExprNode* const node, std::ostream& out)
         out << MakeConnection(node->Id, node->Access->Id);
         return;
     }
+
+    const auto name = node->Type == ExprNode::TypeT::Cast
+                                    ? "Cast to " + ToString(node->StandardTypeChild)
+                                    : ToString(node->Type);
+    out << MakeNode(node->Id, name);
     if (IsBinary(node->Type))
     {
         ToDot(node->Left, out);
@@ -490,7 +495,7 @@ void ToDot(Program* node, std::ostream& out)
     out << "}" << std::endl;
 }
 
-void RunDot(std::string_view dotPath, std::string_view dotFilePath)
+void RunDot(const std::string_view dotPath, const std::string_view dotFilePath)
 {
     _spawnl(_P_NOWAIT, dotPath.data(), "dot", "-O", "-Tpng", dotFilePath.data(), nullptr);
 }

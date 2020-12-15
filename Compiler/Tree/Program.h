@@ -1,6 +1,8 @@
 #pragma once
 #include "Class.h"
 #include "Enum.h"
+// ReSharper disable once CppUnusedIncludeDirective
+#include "AccessExpr.h"
 
 struct NamespaceMembersNode final : Node
 {

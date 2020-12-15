@@ -1,6 +1,7 @@
 #pragma once
 #include "Node.h"
-#include "AccessExpr.h"
+
+struct AccessExpr;
 
 enum class StandardType
 {
@@ -59,20 +60,9 @@ struct TypeNode final : Node
     AccessExpr* Access{};
 
 
-    explicit TypeNode(const StandardType stdType)
-        : StdType{ stdType }
-    {
-    }
+    explicit TypeNode(const StandardType stdType);
 
-    explicit TypeNode(const StandardArrayType stdArrType)
-        : Type{ TypeT::StdArrType }
-      , StdArrType{ stdArrType }
-    {
-    }
+    explicit TypeNode(const StandardArrayType stdArrType);
 
-    explicit TypeNode(AccessExpr* const accessExpr)
-        : Type{ TypeT::AccessExpr }
-      , Access{ accessExpr }
-    {
-    }
+    explicit TypeNode(AccessExpr* const accessExpr);
 };

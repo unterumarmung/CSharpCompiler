@@ -1,9 +1,9 @@
 #pragma once
 #include "Node.h"
+#include "Type.h"
 
 struct AccessExpr;
 struct ExprSeqNode;
-struct TypeNode;
 
 struct ExprNode final : Node
 {
@@ -27,12 +27,17 @@ struct ExprNode final : Node
         Null,
         AccessExpr,
         SimpleNew,
-        ArrayNew
+        ArrayNew,
+        Cast
     } Type{};
 
+    // Используются как дети для бинарных операций
     ExprNode* Left{};
     ExprNode* Right{};
 
+    // Используется для операции каста выражения
+    StandardType StandardTypeChild{};
+    // Используется для унарных операций
     ExprNode* Child{};
 
     AccessExpr* Access{};
@@ -53,6 +58,8 @@ struct ExprNode final : Node
 
     static ExprNode* FromNew(struct TypeNode* typeNode, ExprSeqNode* exprSeq);
 
+    static ExprNode* FromCast(StandardType standardType, ExprNode* expr);
+
     [[nodiscard]] std::string_view Name() const noexcept override { return "Expr"; }
 
 private:
@@ -63,9 +70,8 @@ private:
 
 inline bool IsBinary(const ExprNode::TypeT type)
 {
-    switch (type)
+    switch (type) // NOLINT(clang-diagnostic-switch-enum)
     {
-        // NOLINT(clang-diagnostic-switch-enum)
     case ExprNode::TypeT::BinPlus:
     case ExprNode::TypeT::BinMinus:
     case ExprNode::TypeT::Multiply:
@@ -87,18 +93,18 @@ inline bool IsBinary(const ExprNode::TypeT type)
 
 inline bool IsUnary(const ExprNode::TypeT type)
 {
-    switch (type)
+    switch (type) // NOLINT(clang-diagnostic-switch-enum)
     {
-        // NOLINT(clang-diagnostic-switch-enum)
     case ExprNode::TypeT::Not:
     case ExprNode::TypeT::UnaryMinus:
+    case ExprNode::TypeT::Cast:
         return true;
     default:
         return false;
     }
 }
 
-inline std::string_view ToString(const ExprNode::TypeT type)
+inline std::string ToString(const ExprNode::TypeT type)
 {
     switch (type)
     {
@@ -140,6 +146,8 @@ inline std::string_view ToString(const ExprNode::TypeT type)
         return "new[]";
     case ExprNode::TypeT::AccessExpr:
         return "AccessExpr";
+    case ExprNode::TypeT::Cast:
+        return "CastExpr";
     default:
         return "";
     }

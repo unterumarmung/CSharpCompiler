@@ -48,3 +48,12 @@ ExprNode* ExprNode::FromNew(::TypeNode* typeNode, ExprSeqNode* exprSeq)
     node->ExprSeq = exprSeq;
     return node;
 }
+
+ExprNode* ExprNode::FromCast(const StandardType standardType, ExprNode* expr)
+{
+    auto* node = new ExprNode;
+    node->Type = TypeT::Cast;
+    node->StandardTypeChild = standardType;
+    node->Child = expr;
+    return node;
+}

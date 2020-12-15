@@ -1,6 +1,5 @@
 #include "Dot.h"
 
-
 #include <process.h>
 #include <string>
 
@@ -490,7 +489,7 @@ void ToDot(Program* node, std::ostream& out)
     out << "}" << std::endl;
 }
 
-void RunDot(std::string_view dotPath, std::string_view dotFilePath)
+void RunDot(const std::string_view dotPath, const std::string_view dotFilePath)
 {
     _spawnl(_P_NOWAIT, dotPath.data(), "dot", "-O", "-Tpng", dotFilePath.data(), nullptr);
 }

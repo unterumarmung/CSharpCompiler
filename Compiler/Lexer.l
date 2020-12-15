@@ -399,9 +399,17 @@ set                                     { PrintKeyword(yytext); }
 ">"                                     { return yytext[0]; }
 "<"                                     { return yytext[0]; }
 
+"+="                                    { return PLUS_ASSIGN; }
+"-="                                    { return MINUS_ASSIGN; }
+"*="                                    { return MULTIPLY_ASSIGN; }
+"/="                                    { return DIVISION_ASSIGN; }
+
 "&&"                                    { return AND; }
 "||"                                    { return OR; }
 "!"                                     { return yytext[0]; }
+
+"++"                                     { return INCREMENT; }
+"--"                                     { return DECREMENT; }
 
 "="                                     { return yytext[0]; }
 

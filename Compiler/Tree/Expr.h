@@ -108,6 +108,8 @@ inline bool IsUnary(const ExprNode::TypeT type)
     case ExprNode::TypeT::Not:
     case ExprNode::TypeT::UnaryMinus:
     case ExprNode::TypeT::Cast:
+    case ExprNode::TypeT::Increment:
+    case ExprNode::TypeT::Decrement:
         return true;
     default:
         return false;
@@ -158,6 +160,14 @@ inline std::string ToString(const ExprNode::TypeT type)
         return "AccessExpr";
     case ExprNode::TypeT::Cast:
         return "CastExpr";
+    case ExprNode::TypeT::Plus_assign:
+        return "+=";
+    case ExprNode::TypeT::Minus_assign:
+        return "-=";
+    case ExprNode::TypeT::Multiply_assign:
+        return "*=";
+    case ExprNode::TypeT::Division_assign:
+        return "/=";
     case ExprNode::TypeT::Increment:
         return "++";
     case ExprNode::TypeT::Decrement:

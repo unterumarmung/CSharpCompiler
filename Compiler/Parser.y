@@ -115,6 +115,13 @@ extern struct Program* treeRoot;
 %token OR
 %token AND
 
+%token PLUS_ASSIGN
+%token MINUS_ASSIGN
+%token MULTIPLY_ASSIGN
+%token DIVISION_ASSIGN
+%token INCREMENT
+%token DECREMENT
+
 %token <_identifier> IDENTIFIER
 %token <_integer> INTEGER
 %token <_floatingPoint> FLOATING_POINT
@@ -148,13 +155,13 @@ extern struct Program* treeRoot;
 %token IN_KW
 %token OBJECT
 
-%right '='
+%right '=' PLUS_ASSIGN MINUS_ASSIGN MULTIPLY_ASSIGN DIVISION_ASSIGN
 %left OR
 %left AND
 %left '<' '>' EQUAL NOT_EQUAL LESS_OR_EQUAL GREATER_OR_EQUAL
 %left '+' '-'
 %left '*' '/'
-%right '!'
+%right '!' INCREMENT DECREMENT
 %left UNARY_MINUS
 %left '.' ']' '['
 %nonassoc '(' ')'
@@ -187,6 +194,10 @@ expr: expr '+' expr                             { $$ = ExprNode::FromBinaryExpre
     | expr '*' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Multiply, $1, $3); }
     | expr '/' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Divide, $1, $3); }
     | expr '=' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Assign, $1, $3); }
+    | expr PLUS_ASSIGN expr                     { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Plus_assign, $1, $3); }
+    | expr MINUS_ASSIGN expr                    { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Minus_assign, $1, $3); }
+    | expr MULTIPLY_ASSIGN expr                 { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Multiply_assign, $1, $3); }
+    | expr DIVISION_ASSIGN expr                 { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Division_assign, $1, $3); }
     | expr '<' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Less, $1, $3); }
     | expr '>' expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Greater, $1, $3); }
     | expr EQUAL expr                           { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Equal, $1, $3); }
@@ -196,6 +207,8 @@ expr: expr '+' expr                             { $$ = ExprNode::FromBinaryExpre
     | expr AND expr                             { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::And, $1, $3); }
     | expr OR expr                              { $$ = ExprNode::FromBinaryExpression(ExprNode::TypeT::Or, $1, $3); }
     | '!' expr                                  { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::Not, $2); }
+    | INCREMENT expr                            { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::Increment, $2); }
+    | DECREMENT expr                            { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::Decrement, $2); }
     | '-' expr %prec UNARY_MINUS                { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::UnaryMinus, $2); }
     | NULL_KW                                   { $$ = ExprNode::FromNull(); }
     | access_expr                               { $$ = ExprNode::FromAccessExpr($1); }

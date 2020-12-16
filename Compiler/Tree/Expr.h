@@ -28,7 +28,13 @@ struct ExprNode final : Node
         AccessExpr,
         SimpleNew,
         ArrayNew,
-        Cast
+        Cast,
+        Plus_assign,
+        Minus_assign,
+        Multiply_assign,
+        Division_assign,
+        Increment,
+        Decrement
     } Type{};
 
     // Используются как дети для бинарных операций
@@ -85,6 +91,10 @@ inline bool IsBinary(const ExprNode::TypeT type)
     case ExprNode::TypeT::LessOrEqual:
     case ExprNode::TypeT::And:
     case ExprNode::TypeT::Or:
+    case ExprNode::TypeT::Plus_assign:
+    case ExprNode::TypeT::Minus_assign:
+    case ExprNode::TypeT::Multiply_assign:
+    case ExprNode::TypeT::Division_assign:
         return true;
     default:
         return false;
@@ -98,6 +108,8 @@ inline bool IsUnary(const ExprNode::TypeT type)
     case ExprNode::TypeT::Not:
     case ExprNode::TypeT::UnaryMinus:
     case ExprNode::TypeT::Cast:
+    case ExprNode::TypeT::Increment:
+    case ExprNode::TypeT::Decrement:
         return true;
     default:
         return false;
@@ -148,6 +160,18 @@ inline std::string ToString(const ExprNode::TypeT type)
         return "AccessExpr";
     case ExprNode::TypeT::Cast:
         return "CastExpr";
+    case ExprNode::TypeT::Plus_assign:
+        return "+=";
+    case ExprNode::TypeT::Minus_assign:
+        return "-=";
+    case ExprNode::TypeT::Multiply_assign:
+        return "*=";
+    case ExprNode::TypeT::Division_assign:
+        return "/=";
+    case ExprNode::TypeT::Increment:
+        return "++";
+    case ExprNode::TypeT::Decrement:
+        return "--";
     default:
         return "";
     }

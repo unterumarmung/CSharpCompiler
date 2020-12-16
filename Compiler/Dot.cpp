@@ -497,5 +497,5 @@ void ToDot(Program* node, std::ostream& out)
 
 void RunDot(const std::string_view dotPath, const std::string_view dotFilePath)
 {
-    _spawnl(_P_NOWAIT, dotPath.data(), "dot", "-O", "-Tpng", dotFilePath.data(), nullptr);
+    _spawnl(_P_NOWAIT, dotPath.data(), "dot", "-O", "-Tsvg", dotFilePath.data(), nullptr);
 }

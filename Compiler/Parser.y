@@ -161,8 +161,7 @@ extern struct Program* treeRoot;
 %left '<' '>' EQUAL NOT_EQUAL LESS_OR_EQUAL GREATER_OR_EQUAL
 %left '+' '-'
 %left '*' '/'
-%right '!'
-%right INCREMENT DECREMENT
+%right '!' INCREMENT DECREMENT
 %left UNARY_MINUS
 %left '.' ']' '['
 %nonassoc '(' ')'

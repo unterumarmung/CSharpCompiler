@@ -50,6 +50,9 @@
     <ClCompile Include="Dot.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="Semantic\Semantic.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Bison Include="Parser.y">
@@ -85,6 +88,12 @@
       <Filter>Ast</Filter>
     </ClInclude>
     <ClInclude Include="Dot.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Semantic\Semantic.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Semantic\JvmClass.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

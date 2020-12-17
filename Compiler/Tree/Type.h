@@ -1,16 +1,36 @@
 #pragma once
 #include "Node.h"
+#include "../Semantic/JvmClass.h"
 
 struct AccessExpr;
 
 enum class StandardType
 {
-    Char,
-    Int,
-    Bool,
-    Float,
-    String
+    Char = 0,
+    Int = 1,
+    Bool = 2,
+    Float = 3,
+    String = 4
 };
+
+inline DataType ToDataType(StandardType standard)
+{
+    switch (standard)
+    {
+    case StandardType::Char:
+        return { DataType::TypeT::Char, false };
+    case StandardType::Int:
+        return { DataType::TypeT::Int, false };
+    case StandardType::Bool:
+        return { DataType::TypeT::Bool, false };
+    case StandardType::Float:
+        return { DataType::TypeT::Float, false };
+    case StandardType::String:
+        return { DataType::TypeT::String, false };
+    default: ;
+    }
+    return {};
+}
 
 inline std::string ToString(const StandardType type)
 {
@@ -59,10 +79,16 @@ struct TypeNode final : Node
     StandardArrayType StdArrType{};
     AccessExpr* Access{};
 
+    [[nodiscard]] DataType ToDataType() const
+    {
+        if (Type == TypeT::StdType) { return ::ToDataType(StdType); }
 
-    explicit TypeNode(const StandardType stdType);
+        return {};
+    }
 
-    explicit TypeNode(const StandardArrayType stdArrType);
+    explicit TypeNode(StandardType stdType);
 
-    explicit TypeNode(AccessExpr* const accessExpr);
+    explicit TypeNode(StandardArrayType stdArrType);
+
+    explicit TypeNode(AccessExpr* accessExpr);
 };

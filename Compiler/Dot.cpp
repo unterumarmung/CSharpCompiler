@@ -177,9 +177,11 @@ void ToDot(ExprNode* const node, std::ostream& out)
         return;
     }
 
-    const auto name = node->Type == ExprNode::TypeT::Cast
-                                    ? "Cast to " + ToString(node->StandardTypeChild)
-                                    : ToString(node->Type);
+    auto name = node->Type == ExprNode::TypeT::Cast
+                    ? "Cast to " + ToString(node->StandardTypeChild)
+                    : ToString(node->Type);
+    name += "\nCalculated data type: "s + ToString(node->AType);
+
     out << MakeNode(node->Id, name);
     if (IsBinary(node->Type))
     {

@@ -1,6 +1,7 @@
 #pragma once
 #include "Expr.h"
 #include "Type.h"
+#include "../Semantic/JvmClass.h"
 
 struct VarDeclNode final : Node
 {
@@ -8,6 +9,7 @@ struct VarDeclNode final : Node
     const char* Identifier{};
     ExprNode* InitExpr{};
 
+    DataType AType{};
 
     VarDeclNode(TypeNode* const varType, const char* const identifier, ExprNode* const initExpr)
         : VarType{ varType }

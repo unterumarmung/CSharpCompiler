@@ -1,6 +1,7 @@
 #pragma once
 #include "Node.h"
 #include "Type.h"
+#include "../Semantic/JvmClass.h"
 
 struct AccessExpr;
 struct ExprSeqNode;
@@ -37,6 +38,8 @@ struct ExprNode final : Node
         Decrement
     } Type{};
 
+    DataType AType;
+
     // Используются как дети для бинарных операций
     ExprNode* Left{};
     ExprNode* Right{};
@@ -67,6 +70,7 @@ struct ExprNode final : Node
     static ExprNode* FromCast(StandardType standardType, ExprNode* expr);
 
     [[nodiscard]] std::string_view Name() const noexcept override { return "Expr"; }
+
 
 private:
     explicit ExprNode() : Node()

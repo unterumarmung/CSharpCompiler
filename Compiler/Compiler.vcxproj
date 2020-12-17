@@ -22,6 +22,7 @@
     <Flex Include="Lexer.l" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Semantic\ClassAnalyzer.cpp" />
     <ClCompile Include="Dot.cpp" />
     <ClCompile Include="Lexer.flex.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -46,6 +47,7 @@
     </Bison>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Semantic\ClassAnalyzer.h" />
     <ClInclude Include="Dot.h" />
     <ClInclude Include="Parser.tab.h" />
     <ClInclude Include="Semantic\JvmClass.h" />
@@ -58,6 +60,7 @@
     <ClInclude Include="Tree\Program.h" />
     <ClInclude Include="Tree\Stmt.h" />
     <ClInclude Include="Tree\Type.h" />
+    <ClInclude Include="VisibilityModified.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

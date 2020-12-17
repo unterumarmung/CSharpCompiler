@@ -5,6 +5,7 @@
 
 #include "Parser.tab.h"
 #include "Dot.h"
+#include "Semantic/Semantic.h"
 
 extern FILE* yyin;
 struct Program* treeRoot;
@@ -20,7 +21,8 @@ int main(const int argc, char** argv)
 
     std::cout << "Building syntax tree" << std::endl;
     yyparse();
-
+    Semantic semantic(treeRoot);
+    semantic.Analyze();
     {
         std::cout << "Generating dot file for syntax tree" << std::endl;
         using namespace std::filesystem;

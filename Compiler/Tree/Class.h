@@ -1,13 +1,8 @@
 #pragma once
 #include "Stmt.h"
 #include "Type.h"
+#include "../VisibilityModified.h"
 
-enum class VisibilityModifier
-{
-    Public,
-    Protected,
-    Private
-};
 
 inline std::string_view ToString(VisibilityModifier modifier)
 {
@@ -27,7 +22,7 @@ inline std::string_view ToString(VisibilityModifier modifier)
 struct FieldDeclNode final : Node
 {
     const VisibilityModifier Visibility;
-    const VarDeclNode* VarDecl;
+    VarDeclNode* VarDecl;
 
     FieldDeclNode(const VisibilityModifier visibility, VarDeclNode* const varDecl)
         : Visibility{ visibility }
@@ -52,7 +47,17 @@ struct MethodDeclNode final : Node
     const std::string_view Identifier;
     const MethodArguments* Arguments;
     const StmtSeqNode* Body;
+    std::vector<VarDeclNode*> variables{};
 
+    VarDeclNode* FindVariableByName(std::string_view var)
+    {
+        for (auto* variable : variables)
+        {
+            if (variable->Identifier == var)
+                return variable;
+        }
+        return nullptr;
+    }
 
     MethodDeclNode(const VisibilityModifier visibility, const TypeNode* const type, const std::string_view identifier,
                    const MethodArguments* const arguments, const StmtSeqNode* const body)
@@ -86,6 +91,15 @@ struct ClassDeclNode final : Node
     IdentifierList* ParentType;
     ClassMembersNode* Members;
 
+    FieldDeclNode* FindFieldByName(std::string_view name)
+    {
+        for (auto* field : Members->Fields)
+        {
+            if (field->VarDecl->Identifier == name)
+                return field;
+        }
+        return nullptr;
+    }
 
     ClassDeclNode(const std::string_view className, IdentifierList* parentType, ClassMembersNode* const members)
         : ClassName{ className }

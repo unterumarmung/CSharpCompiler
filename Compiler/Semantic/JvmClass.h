@@ -31,18 +31,35 @@ struct DataType
         Int = 1,
         Bool = 2,
         Float = 3,
-        String = 4
+        String = 4,
+        Complex = 5
     } AType{};
+
+    int ArrayArity = 0;
 
     bool IsUnknown{};
 
-    bool operator==(DataType data) const { return AType == data.AType && IsUnknown == data.IsUnknown; }
+    bool operator==(DataType data) const
+    {
+        return AType == data.AType
+               && IsUnknown == data.IsUnknown
+               && ArrayArity == data.ArrayArity;
+    }
 };
 
 inline std::string ToString(DataType data)
 {
     if (data.IsUnknown)
         return "unknown";
+    if (data.ArrayArity > 0)
+    {
+        auto temp = data;
+        temp.ArrayArity = 0;
+        auto str = ToString(temp);
+        for (int i = 0; i < data.ArrayArity; ++i)
+            str += "[]";
+        return str;
+    }
     switch (data.AType)
     {
     case DataType::TypeT::Char:
@@ -55,5 +72,7 @@ inline std::string ToString(DataType data)
         return "float";
     case DataType::TypeT::String:
         return "string";
+    case DataType::TypeT::Complex:
+        return "complex";
     }
 }

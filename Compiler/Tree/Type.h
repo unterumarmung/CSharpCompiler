@@ -56,6 +56,13 @@ struct StandardArrayType
     size_t Arity{ 1 };
 };
 
+inline DataType ToDataType(StandardArrayType type)
+{
+    DataType data = ToDataType(type.Type);
+    data.ArrayArity = type.Arity;
+    return data;
+}
+
 inline std::string ToString(const StandardArrayType type)
 {
     auto res = ToString(type.Type);
@@ -82,7 +89,7 @@ struct TypeNode final : Node
     [[nodiscard]] DataType ToDataType() const
     {
         if (Type == TypeT::StdType) { return ::ToDataType(StdType); }
-
+        if (Type == TypeT::StdArrType) { return ::ToDataType(StdArrType); }
         return {};
     }
 

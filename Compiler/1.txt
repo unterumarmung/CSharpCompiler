@@ -7,7 +7,7 @@ namespace A
         public int[] arr;
         public void C(int[] array)
         {
-            arr[0] = arr[1] = 1;
+            arr[1] = arr[0] = 1;
         }
     }
 }

@@ -39,11 +39,16 @@ struct DataType
 
     bool IsUnknown{};
 
-    bool operator==(DataType data) const
+    bool operator==(const DataType data) const
     {
         return AType == data.AType
                && IsUnknown == data.IsUnknown
                && ArrayArity == data.ArrayArity;
+    }
+
+    bool operator!=(const DataType data) const
+    {
+        return !(*this == data);
     }
 };
 

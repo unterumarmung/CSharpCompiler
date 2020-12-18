@@ -113,5 +113,7 @@ struct ClassAnalyzer
 
     void CalculateTypesForExpr(ExprNode* node);
 
+    DataType CalculateTypeForAccessExpr(AccessExpr* access);
+
     static ExprNode* ReplaceAssignmentsOnArrayElements(ExprNode* node);
 };

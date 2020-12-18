@@ -282,9 +282,14 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
     if (!expr)
         return nullptr;
     auto* changed = ReplaceAssignmentsOnArrayElements(expr);
-    CalculateTypesForExpr(changed);
     changed->ApplyToAllChildren(ReplaceAssignmentsOnArrayElements);
+    CalculateTypesForExpr(changed);
     return changed;
+}
+
+bool IsIndexType(DataType data)
+{
+    return data.AType == DataType::TypeT::Int && data.ArrayArity == 0;
 }
 
 void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
@@ -293,50 +298,7 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         return;
     if (node->Type == ExprNode::TypeT::AccessExpr)
     {
-        // ReSharper disable once CppIncompleteSwitchStatement
-        // ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
-        switch (node->Access->Type) // NOLINT(clang-diagnostic-switch)
-        {
-        case AccessExpr::TypeT::Integer:
-            node->AType.AType = DataType::TypeT::Int;
-            break;
-        case AccessExpr::TypeT::Bool:
-            node->AType.AType = DataType::TypeT::Bool;
-            break;
-        case AccessExpr::TypeT::String:
-            node->AType.AType = DataType::TypeT::String;
-            break;
-        case AccessExpr::TypeT::Char:
-            node->AType.AType = DataType::TypeT::Char;
-            break;
-        case AccessExpr::TypeT::Float:
-            node->AType.AType = DataType::TypeT::Float;
-            break;
-        case AccessExpr::TypeT::Identifier:
-        {
-            auto isVariableFound = false;
-            const auto name = std::string{ node->Access->Identifier };
-            if (CurrentMethod)
-            {
-                if (auto* var = CurrentMethod->FindVariableByName(name); var)
-                {
-                    node->AType = var->AType;
-                    isVariableFound = true;
-                }
-            }
-
-            if (CurrentClass && !isVariableFound)
-            {
-                if (auto* var = CurrentClass->FindFieldByName(name); var)
-                {
-                    node->AType = var->VarDecl->AType;
-                    isVariableFound = true;
-                }
-            }
-
-            if (!isVariableFound) { Errors.push_back("Variable with name \"" + name + "\" is not found"); }
-        }
-        }
+        node->AType = CalculateTypeForAccessExpr(node->Access);
         return;
     }
 
@@ -361,18 +323,108 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         return;
     }
 
+    if (node->Type == ExprNode::TypeT::AssignOnArrayElement)
+    {
+        const auto dataTypeForArray = CalculateTypeForAccessExpr(node->ArrayExpr);
+        CalculateTypesForExpr(node->IndexExpr);
+        const auto indexType = node->IndexExpr->AType;
+        CalculateTypesForExpr(node->AssignExpr);
+        if (!IsIndexType(indexType))
+        {
+            Errors.push_back("Array index must be type int, not " + ToString(indexType));
+            return;
+        }
+
+        auto thisType = dataTypeForArray;
+        thisType.ArrayArity -= 1;
+
+        if (thisType != node->AssignExpr->AType)
+        {
+            Errors.push_back("Cannot assign value of type " + ToString(node->AssignExpr->AType) + "to value of type " + ToString(thisType));
+            return;
+        }
+
+        node->AType = thisType;
+        return;
+    }
+
     node->AType.IsUnknown = true;
+}
+
+DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
+{
+    DataType type;
+    // ReSharper disable once CppIncompleteSwitchStatement
+    // ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
+    switch (access->Type) // NOLINT(clang-diagnostic-switch)
+    {
+    case AccessExpr::TypeT::Integer:
+        type.AType = DataType::TypeT::Int;
+        return type;
+    case AccessExpr::TypeT::Bool:
+        type.AType = DataType::TypeT::Bool;
+        return type;
+    case AccessExpr::TypeT::String:
+        type.AType = DataType::TypeT::String;
+        return type;
+    case AccessExpr::TypeT::Char:
+        type.AType = DataType::TypeT::Char;
+        return type;
+    case AccessExpr::TypeT::Float:
+        type.AType = DataType::TypeT::Float;
+        return type;
+    case AccessExpr::TypeT::ArrayElementExpr:
+    {
+        const auto dataTypeForPrevious = CalculateTypeForAccessExpr(access->Previous);
+        CalculateTypesForExpr(access->Child);
+        const auto childType = access->Child->AType;
+        if (!IsIndexType(childType))
+        {
+            Errors.push_back("Array index must be type int, not " + ToString(childType));
+            return type;
+        }
+        if (dataTypeForPrevious.ArrayArity == 0)
+        {
+            Errors.push_back("Cannot use operator[] on type " + ToString(dataTypeForPrevious));
+            return type;
+        }
+        auto thisDataType = dataTypeForPrevious;
+        thisDataType.ArrayArity -= 1;
+        return thisDataType;
+    }
+    case AccessExpr::TypeT::Identifier:
+    {
+        auto isVariableFound = false;
+        const auto name = std::string{ access->Identifier };
+        if (CurrentMethod)
+        {
+            if (auto* var = CurrentMethod->FindVariableByName(name); var)
+            {
+                type = var->AType;
+                isVariableFound = true;
+            }
+        }
+
+        if (CurrentClass && !isVariableFound)
+        {
+            if (auto* var = CurrentClass->FindFieldByName(name); var)
+            {
+                type = var->VarDecl->AType;
+                isVariableFound = true;
+            }
+        }
+
+        if (isVariableFound)
+            return type;
+        Errors.push_back("Variable with name \"" + name + "\" is not found"); 
+    }
+    }
+    type.IsUnknown = true;
+    return type;
 }
 
 ExprNode* ClassAnalyzer::ReplaceAssignmentsOnArrayElements(ExprNode* node)
 {
-    //if (node->Left != nullptr)
-    //{
-    //    node->Left = ReplaceAssignmentsOnArrayElements(node->Left);
-    //    auto* converted = node->Left->ToAssignOnArrayElement();
-    //    if (converted != nullptr)
-    //        node->Left = converted;
-    //}
     auto* converted = node->ToAssignOnArrayElement();
     if (converted)
         return converted;

@@ -111,6 +111,8 @@ struct ClassAnalyzer
 
     [[nodiscard]] ExprNode* AnalyzeExpr(ExprNode* expr);
 
+    void AnalyzeSimpleMethodCall(ExprNode* node);
+
     void CalculateTypesForExpr(ExprNode* node);
 
     DataType CalculateTypeForAccessExpr(AccessExpr* access);

@@ -131,6 +131,10 @@ void ToDot(AccessExpr* const node, std::ostream& out)
     case AccessExpr::TypeT::SimpleMethodCall:
         out << MakeNode(node->Id, "Method call\\nMethodName: " + std::string{ node->Identifier });
         ToDot(node->Arguments, out, node, true, "argument");
+        if (node->ActualMethodCall)
+        {
+            out << MakeConnection(node->Id, node->ActualMethodCall->Id, "calls");
+        }
         return;
     case AccessExpr::TypeT::Dot:
         out << MakeNode(node->Id, "." + std::string{ node->Identifier });

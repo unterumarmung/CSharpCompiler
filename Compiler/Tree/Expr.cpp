@@ -95,3 +95,25 @@ void ExprNode::ApplyToAllChildren(const std::function<ExprNode*(ExprNode*)>& map
     if (AssignExpr)
         AssignExpr = mapFunction(AssignExpr);
 }
+
+void ExprNode::CallForAllChildren(const std::function<void(ExprNode*)>& function) const
+{
+    if(Left)
+        function(Left);
+    if (Right)
+        function(Right);
+    if (Access && Access->Child)
+        function(Access->Child);
+
+    if (ExprSeq)
+        for (auto& expr : ExprSeq->GetSeq())
+            function(expr);
+
+    if (ArrayExpr && ArrayExpr->Child)
+        function(ArrayExpr->Child);
+
+    if (IndexExpr)
+        function(IndexExpr);
+    if (AssignExpr)
+        function(AssignExpr);
+}

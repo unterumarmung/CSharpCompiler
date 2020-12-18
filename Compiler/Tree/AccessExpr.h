@@ -2,6 +2,8 @@
 
 #include "Expr.h"
 
+struct MethodDeclNode;
+
 struct AccessExpr final : Node
 {
     enum class TypeT
@@ -32,6 +34,8 @@ struct AccessExpr final : Node
     bool Bool{};
 
     ExprSeqNode* Arguments{};
+
+    MethodDeclNode* ActualMethodCall{};
 
     [[nodiscard]] std::string_view Name() const noexcept override { return "AccessExpr"; }
 

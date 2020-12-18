@@ -32,7 +32,8 @@ struct DataType
         Bool = 2,
         Float = 3,
         String = 4,
-        Complex = 5
+        Complex = 5,
+        Void = 6
     } AType{};
 
     int ArrayArity = 0;
@@ -79,5 +80,23 @@ inline std::string ToString(DataType data)
         return "string";
     case DataType::TypeT::Complex:
         return "complex";
+    case DataType::TypeT::Void:
+        return "void";
+    default: ;
     }
+}
+
+inline std::string ToString(std::vector<DataType> const& container)
+{
+    std::string str;
+    for (auto it = container.begin(); it != container.end(); ++it)
+    {
+        std::string_view suffix = ", ";
+        if (it == std::prev(container.end()))
+            suffix = "";
+
+        str += ToString(*it);
+        str += suffix;
+    }
+    return str;
 }

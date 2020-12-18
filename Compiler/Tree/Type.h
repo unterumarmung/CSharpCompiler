@@ -71,6 +71,8 @@ inline std::string ToString(const StandardArrayType type)
     return res;
 }
 
+
+
 struct TypeNode final : Node
 {
     [[nodiscard]] std::string_view Name() const noexcept override { return "Type"; }
@@ -86,16 +88,18 @@ struct TypeNode final : Node
     StandardArrayType StdArrType{};
     AccessExpr* Access{};
 
-    [[nodiscard]] DataType ToDataType() const
-    {
-        if (Type == TypeT::StdType) { return ::ToDataType(StdType); }
-        if (Type == TypeT::StdArrType) { return ::ToDataType(StdArrType); }
-        return {};
-    }
-
     explicit TypeNode(StandardType stdType);
 
     explicit TypeNode(StandardArrayType stdArrType);
 
     explicit TypeNode(AccessExpr* accessExpr);
 };
+
+[[nodiscard]]  inline DataType ToDataType(const TypeNode* node)
+{
+    if (!node)
+        return { DataType::TypeT::Void };
+    if (node->Type == TypeNode::TypeT::StdType) { return ::ToDataType(node->StdType); }
+    if (node->Type == TypeNode::TypeT::StdArrType) { return ::ToDataType(node->StdArrType); }
+    return {};
+}

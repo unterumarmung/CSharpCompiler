@@ -80,7 +80,7 @@ struct ExprNode final : Node
     ExprNode* ToAssignOnArrayElement() const;
 
     void ApplyToAllChildren(const std::function<ExprNode*(ExprNode*)>& mapFunction);
-
+    void CallForAllChildren(const std::function<void(ExprNode*)>& function) const;
 private:
     explicit ExprNode() : Node()
     {

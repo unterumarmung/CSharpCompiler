@@ -1,4 +1,6 @@
 #pragma once
+#include <algorithm>
+
 #include "Stmt.h"
 #include "Type.h"
 #include "../VisibilityModified.h"
@@ -40,6 +42,31 @@ struct MethodArguments final : NodeSeq<MethodArguments, VarDeclNode>
     [[nodiscard]] std::string_view Name() const noexcept override { return "MethodArguments"; }
 };
 
+struct MethodArgumentDto
+{
+    DataType Type;
+    std::string Name;
+
+};
+
+inline std::vector<DataType> ToTypes(std::vector<MethodArgumentDto> const& arguments)
+{
+    std::vector<DataType> types(arguments.size());
+    std::transform(arguments.begin(), arguments.end(), types.begin(), [](auto& arg)
+        {
+            return arg.Type;
+        });
+    return types;
+}
+
+inline MethodArgumentDto ToMethodArgumentDto(VarDeclNode* node)
+{
+    return {
+        ToDataType(node->VarType),
+        std::string{ node->Identifier }
+    };
+}
+
 struct MethodDeclNode final : Node
 {
     const VisibilityModifier Visibility;
@@ -47,11 +74,14 @@ struct MethodDeclNode final : Node
     const std::string_view Identifier;
     const MethodArguments* Arguments;
     const StmtSeqNode* Body;
-    std::vector<VarDeclNode*> variables{};
+
+    std::vector<VarDeclNode*> Variables{};
+    DataType AReturnType{};
+    std::vector<MethodArgumentDto> ArgumentDtos{};
 
     VarDeclNode* FindVariableByName(std::string_view var)
     {
-        for (auto* variable : variables)
+        for (auto* variable : Variables)
         {
             if (variable->Identifier == var)
                 return variable;

@@ -1,5 +1,7 @@
 #include "ClassAnalyzer.h"
 
+#include <iterator>
+
 bool operator==(const Constant& lhs, const Constant& rhs)
 {
     if (lhs.Type != rhs.Type) { return false; }
@@ -188,8 +190,8 @@ void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl)
 {
     if (!varDecl)
         return;
-    varDecl->AType = varDecl->VarType->ToDataType();
-    if (CurrentMethod) { CurrentMethod->variables.push_back(varDecl); }
+    varDecl->AType = ToDataType(varDecl->VarType);
+    if (CurrentMethod) { CurrentMethod->Variables.push_back(varDecl); }
     varDecl->InitExpr = AnalyzeExpr(varDecl->InitExpr);
 }
 
@@ -249,10 +251,33 @@ void ClassAnalyzer::AnalyzeStmt(StmtNode* stmt)
     stmt->Expr = AnalyzeExpr(stmt->Expr);
 }
 
+
+
 void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 {
     CurrentMethod = method;
-    for (auto* stmt : method->Body->GetSeq()) { AnalyzeStmt(stmt); }
+
+    const auto& allMethods = CurrentClass->Members->Methods;
+    const auto sameMethodsCount = std::count_if(allMethods.begin(), allMethods.end(), [&](auto* otherMethod)
+        {
+            return method->Identifier == otherMethod->Identifier && ToTypes(method->ArgumentDtos) == ToTypes(otherMethod->ArgumentDtos);
+        });
+
+    if (sameMethodsCount > 1)
+    {
+        Errors.push_back("Method with name "
+            + std::string(method->Identifier)
+            + "and with arguments of types: "
+            + ToString(ToTypes(method->ArgumentDtos))
+            + " has been already defined");
+    }
+
+    for (auto* var : method->Arguments->GetSeq())
+        AnalyzeVarDecl(var);
+    for (auto* stmt : method->Body->GetSeq())
+    {
+        AnalyzeStmt(stmt);
+    }
     CurrentMethod = nullptr;
 }
 
@@ -274,7 +299,18 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
 {
     Table.FindClass(std::string{ value->ClassName });
     for (auto* field : value->Members->Fields) { AnalyzeField(field); }
-    for (auto* method : value->Members->Methods) { AnalyzeMethod(method); }
+    for (auto* method : value->Members->Methods)
+    {
+        method->AReturnType = ToDataType(method->Type);
+        auto&& varDeclNodes = method->Arguments->GetSeq();
+        std::transform(varDeclNodes.begin(), varDeclNodes.end(),
+            std::back_inserter(method->ArgumentDtos),
+            ToMethodArgumentDto);
+    }
+    for (auto* method : value->Members->Methods)
+    {
+        AnalyzeMethod(method);
+    }
 }
 
 [[nodiscard]] ExprNode* ClassAnalyzer::AnalyzeExpr(ExprNode* expr)
@@ -283,11 +319,53 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
         return nullptr;
     auto* changed = ReplaceAssignmentsOnArrayElements(expr);
     changed->ApplyToAllChildren(ReplaceAssignmentsOnArrayElements);
+    AnalyzeSimpleMethodCall(expr);
+    expr->CallForAllChildren([this](ExprNode* expr) { AnalyzeSimpleMethodCall(expr); });
     CalculateTypesForExpr(changed);
     return changed;
 }
 
-bool IsIndexType(DataType data)
+void ClassAnalyzer::AnalyzeSimpleMethodCall(ExprNode* node)
+{
+    if (!node)
+        return;
+    auto* expr = node->Access;
+    if (!expr)
+        return;
+    if (expr->Type != AccessExpr::TypeT::SimpleMethodCall)
+        return;
+
+    for (auto*& argument : expr->Arguments->GetSeq())
+        argument = AnalyzeExpr(argument);
+
+    const auto methodName = expr->Identifier;
+    const auto callTypes = [expr]()
+    {
+        auto const& arguments = expr->Arguments->GetSeq();
+        std::vector<DataType> types(arguments.size());
+        std::transform(arguments.begin(), arguments.end(), types.begin(), [](auto& arg)
+            {
+                return arg->AType;
+            });
+        return types;
+    }();
+
+    auto const& allMethods = CurrentClass->Members->Methods;
+    const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
+    {
+        return methodName == method->Identifier && callTypes == ToTypes(method->ArgumentDtos);
+    });
+
+    if (foundMethod == allMethods.end())
+    {
+        Errors.push_back("Cannot call method with name " + std::string{ methodName } + " with arguments of types " + ToString(callTypes));
+        return;
+    }
+
+    expr->ActualMethodCall = *foundMethod;
+}
+
+bool IsIndexType(const DataType data)
 {
     return data.AType == DataType::TypeT::Int && data.ArrayArity == 0;
 }
@@ -340,7 +418,7 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
 
         if (thisType != node->AssignExpr->AType)
         {
-            Errors.push_back("Cannot assign value of type " + ToString(node->AssignExpr->AType) + "to value of type " + ToString(thisType));
+            Errors.push_back("Cannot assign value of type " + ToString(node->AssignExpr->AType) + " to value of type " + ToString(thisType));
             return;
         }
 
@@ -373,6 +451,11 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
     case AccessExpr::TypeT::Float:
         type.AType = DataType::TypeT::Float;
         return type;
+    case AccessExpr::TypeT::SimpleMethodCall:
+        if (access->ActualMethodCall)
+            return access->ActualMethodCall->AReturnType;
+        else
+            return { DataType::TypeT::Void, {}, true };
     case AccessExpr::TypeT::ArrayElementExpr:
     {
         const auto dataTypeForPrevious = CalculateTypeForAccessExpr(access->Previous);

@@ -42,6 +42,7 @@ struct NodeSeq : Node
 
     explicit NodeSeq(TNode* node) : Node() { _seq.push_back(node); }
 
+    [[nodiscard]] std::vector<TNode*>& GetSeq() { return _seq; }
     [[nodiscard]] const std::vector<TNode*>& GetSeq() const { return _seq; }
 protected:
     std::vector<TNode*> _seq{};

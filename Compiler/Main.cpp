@@ -38,11 +38,18 @@ int main(const int argc, char** argv)
 
     std::cout << "Building syntax tree" << std::endl;
     yyparse();
+
     MakeTreeImage("TreeBeforeSemantic.dot");
+
     Semantic semantic(treeRoot);
     semantic.Analyze();
 
+    std::cout << std::endl << "Errors: " << std::endl;
+    for (auto const& error : semantic.Errors) { std::cout << error << std::endl; }
+    std::cout << std::endl;
+
     MakeTreeImage("TreeAfterSemantic.dot");
+
     std::cout << "To close the program press Enter" << std::endl;
     std::cin.get();
 }

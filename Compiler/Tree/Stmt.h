@@ -6,7 +6,7 @@
 struct VarDeclNode final : Node
 {
     TypeNode* VarType{};
-    const char* Identifier{};
+    std::string_view Identifier{};
     ExprNode* InitExpr{};
 
     DataType AType{};

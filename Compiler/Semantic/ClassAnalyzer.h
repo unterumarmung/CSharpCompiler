@@ -19,8 +19,14 @@ struct Constant
         String,
         NameAndType,
         Class,
-        MethodRef,
-        FieldRef
+        Utf8 = 1,
+        Integer = 3,
+        Float = 4,
+        String = 8,
+        NameAndType = 12,
+        Class = 7,
+        MethodRef = 9,
+        FieldRef = 10
     } Type{};
 
     std::string Utf8{};

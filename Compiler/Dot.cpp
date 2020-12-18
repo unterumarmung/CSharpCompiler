@@ -201,7 +201,6 @@ void ToDot(ExprNode* const node, std::ostream& out)
     {
         ToDot(node->TypeNode, out);
         out << MakeConnection(node->Id, node->TypeNode->Id, "type");
-        return;
     }
     if (node->Type == ExprNode::TypeT::ArrayNew)
     {
@@ -209,11 +208,21 @@ void ToDot(ExprNode* const node, std::ostream& out)
         out << MakeConnection(node->Id, node->TypeNode->Id, "type");
         ToDot(node->ExprSeq, out, node);
     }
+
+    if (node->Type == ExprNode::TypeT::AssignOnArrayElement)
+    {
+        ToDot(node->ArrayExpr, out);
+        ToDot(node->IndexExpr, out);
+        ToDot(node->AssignExpr, out);
+        out << MakeConnection(node->Id, node->ArrayExpr->Id, "array");
+        out << MakeConnection(node->Id, node->IndexExpr->Id, "index");
+        out << MakeConnection(node->Id, node->AssignExpr->Id, "assign");
+    }
 }
 
 void ToDot(const VarDeclNode* node, std::ostream& out)
 {
-    const auto name = std::string{ node->Name() } + std::string{ "\\nName = " } + node->Identifier;
+    const auto name = std::string{ node->Name() } + "\\nName = "s + std::string{ node->Identifier };
     out << MakeNode(node->Id, name);
     ToDot(node->VarType, out);
     out << MakeConnection(node->Id, node->VarType->Id, "Variable type");

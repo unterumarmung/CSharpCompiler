@@ -16,6 +16,8 @@ struct Semantic
     MethodDeclNode* CurrentMethod = nullptr;
     ClassDeclNode* CurrentClass = nullptr;
 
+    std::vector<std::string> Errors;
+
     void Analyze() { for (const auto& _namespace : program->Namespaces->GetSeq()) { AnalyzeNamespace(_namespace); } }
 
     void AnalyzeNamespace(NamespaceDeclNode* namespace_)
@@ -24,8 +26,7 @@ struct Semantic
         {
             ClassAnalyzer analyzer(class_);
             analyzer.Analyze();
-
+            Errors.insert(Errors.end(), analyzer.Errors.begin(), analyzer.Errors.end());
         }
-
-    }   // TODO enums
+    } // TODO enums
 };

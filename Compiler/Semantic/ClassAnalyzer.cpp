@@ -363,3 +363,18 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
 
     node->AType.IsUnknown = true;
 }
+
+ExprNode* ClassAnalyzer::ReplaceAssignmentsOnArrayElements(ExprNode* node)
+{
+    //if (node->Left != nullptr)
+    //{
+    //    node->Left = ReplaceAssignmentsOnArrayElements(node->Left);
+    //    auto* converted = node->Left->ToAssignOnArrayElement();
+    //    if (converted != nullptr)
+    //        node->Left = converted;
+    //}
+    auto* converted = node->ToAssignOnArrayElement();
+    if (converted)
+        return converted;
+    return node;
+}

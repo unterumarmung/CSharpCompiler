@@ -2,7 +2,7 @@
 #include "Node.h"
 #include "Type.h"
 #include "../Semantic/JvmClass.h"
-
+#include <functional>
 struct AccessExpr;
 struct ExprSeqNode;
 
@@ -35,7 +35,8 @@ struct ExprNode final : Node
         Multiply_assign,
         Division_assign,
         Increment,
-        Decrement
+        Decrement,
+        AssignOnArrayElement
     } Type{};
 
     DataType AType;
@@ -55,6 +56,11 @@ struct ExprNode final : Node
 
     TypeNode* TypeNode{};
 
+    // For AssignOnArrayElement
+    AccessExpr* ArrayExpr{};
+    ExprNode* IndexExpr{};
+    ExprNode* AssignExpr{};
+
     static ExprNode* FromBinaryExpression(TypeT type, ExprNode* lhs, ExprNode* rhs);
 
     static ExprNode* FromUnaryExpression(TypeT type, ExprNode* child);
@@ -71,6 +77,9 @@ struct ExprNode final : Node
 
     [[nodiscard]] std::string_view Name() const noexcept override { return "Expr"; }
 
+    ExprNode* ToAssignOnArrayElement() const;
+
+    void ApplyToAllChildren(const std::function<ExprNode*(ExprNode*)>& mapFunction);
 
 private:
     explicit ExprNode() : Node()
@@ -176,8 +185,9 @@ inline std::string ToString(const ExprNode::TypeT type)
         return "++";
     case ExprNode::TypeT::Decrement:
         return "--";
-    default:
-        return "";
+    case ExprNode::TypeT::AssignOnArrayElement:
+        return "[]=";
+    default: ;
     }
 }
 

@@ -380,6 +380,7 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         return;
     }
 
+    const auto boolType = DataType{ DataType::TypeT::Bool };
     if (IsBinary(node->Type))
     {
         CalculateTypesForExpr(node->Left);
@@ -388,16 +389,28 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         const auto rightType = node->Right->AType;
         if (leftType == rightType)
         {
-            node->AType = node->Left->AType;
+            node->AType = leftType;
             return;
         }
-        Errors.push_back("Types '" + ToString(leftType) + "' and '" + ToString(rightType) + "' are not compatible");
+        if (IsLogical(node->Type))
+        {
+            node->AType = boolType;
+            if (boolType == leftType && boolType == rightType)
+                return;
+        }
+        Errors.push_back("Types '" + ToString(leftType) + "' and '" + ToString(rightType) + "' are not compatible with operation " + ToString(node->Type));
     }
 
     if (IsUnary(node->Type))
     {
         CalculateTypesForExpr(node->Child);
         node->AType = node->Child->AType;
+
+        if (IsLogical(node->Type) && node->Child->AType != boolType)
+        {
+            node->AType = boolType;
+            Errors.push_back("Type '" + ToString(node->Child->AType) +  "' is not compatible with operation " + ToString(node->Type));
+        }
         return;
     }
 

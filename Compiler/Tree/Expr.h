@@ -114,6 +114,35 @@ inline bool IsBinary(const ExprNode::TypeT type)
     }
 }
 
+inline bool IsComparison(const ExprNode::TypeT type)
+{
+    switch (type) // NOLINT(clang-diagnostic-switch-enum)
+    {
+    case ExprNode::TypeT::Less:
+    case ExprNode::TypeT::Greater:
+    case ExprNode::TypeT::Equal:
+    case ExprNode::TypeT::NotEqual:
+    case ExprNode::TypeT::GreaterOrEqual:
+    case ExprNode::TypeT::LessOrEqual:
+        return true;
+    default:
+        return false;
+    }
+}
+
+inline bool IsLogical(const ExprNode::TypeT type)
+{
+    switch (type) // NOLINT(clang-diagnostic-switch-enum)
+    {
+    case ExprNode::TypeT::And:
+    case ExprNode::TypeT::Or:
+    case ExprNode::TypeT::Not:
+        return true;
+    default:
+        return false;
+    }
+}
+
 inline bool IsUnary(const ExprNode::TypeT type)
 {
     switch (type) // NOLINT(clang-diagnostic-switch-enum)

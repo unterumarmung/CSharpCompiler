@@ -9,6 +9,8 @@ namespace A
         {
             B(array);
             array[1] = B(array[0]);
+	bool test = true;
+        !test && test;
         }
         public void B(int[] array)
         {

@@ -451,24 +451,36 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
     {
     case AccessExpr::TypeT::Integer:
         type.AType = DataType::TypeT::Int;
+        access->AType = type;
         return type;
     case AccessExpr::TypeT::Bool:
         type.AType = DataType::TypeT::Bool;
+        access->AType = type;
         return type;
     case AccessExpr::TypeT::String:
         type.AType = DataType::TypeT::String;
+        access->AType = type;
         return type;
     case AccessExpr::TypeT::Char:
         type.AType = DataType::TypeT::Char;
+        access->AType = type;
         return type;
     case AccessExpr::TypeT::Float:
         type.AType = DataType::TypeT::Float;
+        access->AType = type;
         return type;
     case AccessExpr::TypeT::SimpleMethodCall:
         if (access->ActualMethodCall)
-            return access->ActualMethodCall->AReturnType;
+        {
+            type = access->ActualMethodCall->AReturnType;
+            access->AType = type;
+        }
         else
-            return { DataType::TypeT::Void, {}, true };
+        {
+            type = { DataType::TypeT::Void, {}, true };
+            access->AType = type;
+        }
+        return type;
     case AccessExpr::TypeT::ArrayElementExpr:
     {
         const auto dataTypeForPrevious = CalculateTypeForAccessExpr(access->Previous);
@@ -477,15 +489,18 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
         if (!IsIndexType(childType))
         {
             Errors.push_back("Array index must be type int, not " + ToString(childType));
+            access->AType = type;
             return type;
         }
         if (dataTypeForPrevious.ArrayArity == 0)
         {
             Errors.push_back("Cannot use operator[] on type " + ToString(dataTypeForPrevious));
+            access->AType = type;
             return type;
         }
         auto thisDataType = dataTypeForPrevious;
         thisDataType.ArrayArity -= 1;
+        access->AType = type;
         return thisDataType;
     }
     case AccessExpr::TypeT::Identifier:
@@ -511,11 +526,16 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
         }
 
         if (isVariableFound)
+        {
+            access->AType = type;
             return type;
+        }
+            
         Errors.push_back("Variable with name \"" + name + "\" is not found"); 
     }
     }
     type.IsUnknown = true;
+    access->AType = type;
     return type;
 }
 

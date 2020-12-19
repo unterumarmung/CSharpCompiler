@@ -37,6 +37,8 @@ struct AccessExpr final : Node
 
     MethodDeclNode* ActualMethodCall{};
 
+    DataType AType{};
+
     [[nodiscard]] std::string_view Name() const noexcept override { return "AccessExpr"; }
 
     static AccessExpr* FromExpr(ExprNode* expr);

@@ -84,8 +84,9 @@ struct ClassAnalyzer
     ClassDeclNode* CurrentClass = nullptr;
     ConstantTable Table;
     std::vector<std::string> Errors;
+    NamespaceDeclNode* Namespace;
 
-    explicit ClassAnalyzer(ClassDeclNode* node);
+    explicit ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_);
 
     void Analyze();
 
@@ -118,4 +119,6 @@ struct ClassAnalyzer
     DataType CalculateTypeForAccessExpr(AccessExpr* access);
 
     static ExprNode* ReplaceAssignmentsOnArrayElements(ExprNode* node);
+
+    void ValidateTypename(DataType & dataType);
 };

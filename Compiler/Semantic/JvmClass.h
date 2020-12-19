@@ -40,14 +40,17 @@ struct DataType
 
     bool IsUnknown{};
 
-    bool operator==(const DataType data) const
+    std::vector<std::string> ComplexType{};
+
+    bool operator==(const DataType& data) const
     {
         return AType == data.AType
                && IsUnknown == data.IsUnknown
-               && ArrayArity == data.ArrayArity;
+               && ArrayArity == data.ArrayArity
+                && ComplexType == data.ComplexType;
     }
 
-    bool operator!=(const DataType data) const
+    bool operator!=(const DataType& data) const
     {
         return !(*this == data);
     }
@@ -79,10 +82,19 @@ inline std::string ToString(DataType data)
     case DataType::TypeT::String:
         return "string";
     case DataType::TypeT::Complex:
-        return "complex";
+    {
+        std::string fullName;
+        for (auto const& namePart : data.ComplexType)
+        {
+            fullName += namePart;
+            fullName += '.';
+        }
+        fullName.pop_back();
+        return fullName;
+    }
     case DataType::TypeT::Void:
         return "void";
-    default: ;
+
     }
 }
 

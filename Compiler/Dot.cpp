@@ -5,7 +5,7 @@
 
 using namespace std::string_literals;
 
-void ToDot(AccessExpr* node, std::ostream& out);
+void ToDot(AccessExpr* node, std::ostream& out, bool isType = false);
 
 void ToDot(const TypeNode* node, std::ostream& out);
 
@@ -89,9 +89,11 @@ void ToDot(ExprSeqNode* node, std::ostream& out, Node* parent, const bool markNe
     }
 }
 
-void ToDot(AccessExpr* const node, std::ostream& out)
+void ToDot(AccessExpr* const node, std::ostream& out, const bool isType)
 {
-    const auto nameSuffix = "\nCalculated data type: " + ToString(node->AType);
+    const auto nameSuffix = isType
+                        ? ""
+                        : "\nCalculated data type: " + ToString(node->AType);
     switch (node->Type)
     {
     case AccessExpr::TypeT::Expr:
@@ -166,7 +168,7 @@ void ToDot(const TypeNode* node, std::ostream& out)
         return;
     case TypeNode::TypeT::AccessExpr:
         out << MakeNode(node->Id, name);
-        ToDot(node->Access, out);
+        ToDot(node->Access, out, true);
         out << MakeConnection(node->Id, node->Access->Id, "Complex type");
     }
 }
@@ -227,7 +229,8 @@ void ToDot(ExprNode* const node, std::ostream& out)
 
 void ToDot(const VarDeclNode* node, std::ostream& out)
 {
-    const auto name = std::string{ node->Name() } + "\\nName = "s + std::string{ node->Identifier };
+    auto name = std::string{ node->Name() } + "\\nName = "s + std::string{ node->Identifier };
+    name += "\nCalculated data type: " + ToString(node->AType);
     out << MakeNode(node->Id, name);
     ToDot(node->VarType, out);
     out << MakeConnection(node->Id, node->VarType->Id, "Variable type");

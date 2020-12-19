@@ -65,6 +65,31 @@ struct AccessExpr final : Node
 
     static AccessExpr* FromDot(AccessExpr* previous, const char* id, ExprSeqNode* arguments);
 
+    [[nodiscard]] DataType ToDataType() const
+    {
+        if (Type == TypeT::ComplexArrayType)
+        {
+            auto childType = Previous->ToDataType();
+            childType.ArrayArity += 1;
+            return childType;
+        }
+        if (Type == TypeT::Identifier)
+        {
+            DataType data;
+            data.AType = DataType::TypeT::Complex;
+            data.ComplexType = { std::string{ Identifier } };
+            return data;
+        }
+        if (Type == TypeT::Dot)
+        {
+            auto childType = Previous->ToDataType();
+            childType.ComplexType.emplace_back(Identifier);
+            return childType;
+        }
+
+        return { DataType::TypeT::Void, {}, true };
+    }
+
 private:
     AccessExpr() : Node()
     {

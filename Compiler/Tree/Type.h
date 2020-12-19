@@ -95,11 +95,4 @@ struct TypeNode final : Node
     explicit TypeNode(AccessExpr* accessExpr);
 };
 
-[[nodiscard]]  inline DataType ToDataType(const TypeNode* node)
-{
-    if (!node)
-        return { DataType::TypeT::Void };
-    if (node->Type == TypeNode::TypeT::StdType) { return ::ToDataType(node->StdType); }
-    if (node->Type == TypeNode::TypeT::StdArrType) { return ::ToDataType(node->StdArrType); }
-    return {};
-}
+[[nodiscard]] DataType ToDataType(const TypeNode* node);

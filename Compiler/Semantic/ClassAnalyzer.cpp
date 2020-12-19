@@ -2,6 +2,8 @@
 
 #include <iterator>
 
+using namespace std::string_literals;
+
 bool operator==(const Constant& lhs, const Constant& rhs)
 {
     if (lhs.Type != rhs.Type) { return false; }
@@ -176,7 +178,7 @@ IdT ConstantTable::FindMethodRef(std::string const& className, std::string const
     return foundIter - Constants.begin();
 }
 
-ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node) : CurrentClass{ node }
+ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_) : CurrentClass{ node }, Namespace{ namespace_ }
 {
 }
 
@@ -191,6 +193,7 @@ void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl)
     if (!varDecl)
         return;
     varDecl->AType = ToDataType(varDecl->VarType);
+    ValidateTypename(varDecl->AType);
     if (CurrentMethod) { CurrentMethod->Variables.push_back(varDecl); }
     varDecl->InitExpr = AnalyzeExpr(varDecl->InitExpr);
 }
@@ -380,7 +383,15 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         return;
     }
 
-    const auto boolType = DataType{ DataType::TypeT::Bool };
+    if (node->Type == ExprNode::TypeT::SimpleNew)
+    {
+        auto dataType = ToDataType(node->TypeNode);
+        ValidateTypename(dataType);
+        node->AType = dataType;
+        return;
+    }
+
+    const DataType boolType = { DataType::TypeT::Bool, {}, {}, {} };
     if (IsBinary(node->Type))
     {
         CalculateTypesForExpr(node->Left);
@@ -545,4 +556,29 @@ ExprNode* ClassAnalyzer::ReplaceAssignmentsOnArrayElements(ExprNode* node)
     if (converted)
         return converted;
     return node;
+}
+
+void ClassAnalyzer::ValidateTypename(DataType & dataType)
+{
+    if (dataType.IsUnknown)
+    {
+        Errors.emplace_back("Cannot create object of unknown type");
+    }
+    else if (dataType.AType == DataType::TypeT::Complex)
+    {
+        const auto& allClassesInNamespace = Namespace->Members->Classes;
+        const auto foundClass = std::find_if(allClassesInNamespace.begin(), allClassesInNamespace.end(), [&](ClassDeclNode* class_)
+            {
+                return class_->ClassName == dataType.ComplexType.front();
+            });
+        if (foundClass == allClassesInNamespace.end())
+        {
+            Errors.push_back("No class " + ToString(dataType) + "in namespace " + std::string{ Namespace->NamespaceName });
+            dataType.IsUnknown = true;
+        }
+        else
+        {
+            dataType.ComplexType.insert(dataType.ComplexType.begin(), std::string{ Namespace->NamespaceName });
+        }
+    }
 }

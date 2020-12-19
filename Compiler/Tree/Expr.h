@@ -5,6 +5,7 @@
 #include <functional>
 struct AccessExpr;
 struct ExprSeqNode;
+struct ClassDeclNode;
 
 struct ExprNode final : Node
 {

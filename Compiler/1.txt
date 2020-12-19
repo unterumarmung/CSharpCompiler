@@ -7,10 +7,7 @@ namespace A
         public int[] arr;
         public void C(int[] array)
         {
-            B(array);
-            array[1] = B(array[0]);
-	bool test = true;
-        !test && test;
+           B var = new B;
         }
         public void B(int[] array)
         {

@@ -10,6 +10,7 @@ struct VarDeclNode final : Node
     ExprNode* InitExpr{};
 
     DataType AType{};
+    int PositionInMethod{};
 
     VarDeclNode(TypeNode* const varType, const char* const identifier, ExprNode* const initExpr)
         : VarType{ varType }

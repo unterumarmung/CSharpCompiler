@@ -4,6 +4,7 @@
 
 struct MethodDeclNode;
 struct FieldDeclNode;
+struct VarDeclNode;
 
 struct AccessExpr final : Node
 {
@@ -38,6 +39,7 @@ struct AccessExpr final : Node
 
     MethodDeclNode* ActualMethodCall{};
     FieldDeclNode* ActualField{};
+    VarDeclNode* ActualVar;
 
     DataType AType{};
 

@@ -211,7 +211,21 @@ void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
                          ToString(varDecl->InitExpr->AType));
     }
 
-    if (CurrentMethod) { CurrentMethod->Variables.push_back(varDecl); }
+    if (CurrentMethod)
+    {
+        auto const& methodVariables = CurrentMethod->Variables;
+        auto const foundVariable = std::find_if(methodVariables.begin(), methodVariables.end(), [&](VarDeclNode* var)
+            {
+                return var->Identifier == varDecl->Identifier;
+            });
+        if (foundVariable != methodVariables.end())
+        {
+            Errors.push_back("Variable with name '" + std::string{ varDecl->Identifier } + "' is already defined in method " + std::string{ CurrentMethod->Identifier });
+            return;
+        }
+        CurrentMethod->Variables.push_back(varDecl);
+        varDecl->PositionInMethod = CurrentMethod->Variables.size();
+    }
 }
 
 void ClassAnalyzer::AnalyzeWhile(WhileNode* while_)
@@ -328,6 +342,7 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 
     for (auto* var : method->Arguments->GetSeq())
         AnalyzeVarDecl(var);
+
     for (auto* stmt : method->Body->GetSeq()) { AnalyzeStmt(stmt); }
 
     if (!method->Body->GetSeq().empty() 
@@ -736,6 +751,7 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             {
                 type = var->AType;
                 isVariableFound = true;
+                access->ActualVar = var;
             }
         }
 

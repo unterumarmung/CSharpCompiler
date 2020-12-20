@@ -14,12 +14,14 @@ namespace A
     public class B
     {
         public C[] arr;
+        public C arr;
         public void C(int[] array)
         {
 		arr[0].Method().B(array[B(array[0])]);
         }
         public void B(int[] array)
         {
+            int array;
         }
         public int B(int i)
         {

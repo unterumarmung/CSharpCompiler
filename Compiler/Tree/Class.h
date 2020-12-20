@@ -6,6 +6,8 @@
 #include "../VisibilityModified.h"
 
 
+struct ClassDeclNode;
+
 inline std::string_view ToString(VisibilityModifier modifier)
 {
     switch (modifier)
@@ -25,6 +27,7 @@ struct FieldDeclNode final : Node
 {
     const VisibilityModifier Visibility;
     VarDeclNode* VarDecl;
+    ClassDeclNode* Class;
 
     FieldDeclNode(const VisibilityModifier visibility, VarDeclNode* const varDecl)
         : Visibility{ visibility }
@@ -46,16 +49,12 @@ struct MethodArgumentDto
 {
     DataType Type;
     std::string Name;
-
 };
 
 inline std::vector<DataType> ToTypes(std::vector<MethodArgumentDto> const& arguments)
 {
     std::vector<DataType> types(arguments.size());
-    std::transform(arguments.begin(), arguments.end(), types.begin(), [](auto& arg)
-        {
-            return arg.Type;
-        });
+    std::transform(arguments.begin(), arguments.end(), types.begin(), [](auto& arg) { return arg.Type; });
     return types;
 }
 
@@ -78,6 +77,8 @@ struct MethodDeclNode final : Node
     std::vector<VarDeclNode*> Variables{};
     DataType AReturnType{};
     std::vector<MethodArgumentDto> ArgumentDtos{};
+
+    ClassDeclNode* Class;
 
     VarDeclNode* FindVariableByName(std::string_view var)
     {

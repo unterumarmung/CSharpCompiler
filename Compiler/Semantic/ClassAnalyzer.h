@@ -113,7 +113,9 @@ struct ClassAnalyzer
     void AnalyzeClass(ClassDeclNode* value);
 
     [[nodiscard]] ExprNode* AnalyzeExpr(ExprNode* expr);
+
     void AnalyzeAccessExpr(AccessExpr* expr);
+
     void AnalyzeSimpleMethodCall(ExprNode* node);
 
     void AnalyzeDotMethodCall(ExprNode* node);
@@ -128,8 +130,7 @@ struct ClassAnalyzer
 
     static ExprNode* ReplaceAssignmentsOnArrayElements(ExprNode* node);
 
-    void ValidateTypename(DataType & dataType);
+    void ValidateTypename(DataType& dataType);
 
     [[nodiscard]] ClassDeclNode* FindClass(DataType const& dataType) const;
 };
-

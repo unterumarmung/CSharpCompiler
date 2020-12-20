@@ -197,10 +197,7 @@ void ClassAnalyzer::AnalyzeMemberSignatures()
         for (auto* var : method->Arguments->GetSeq())
             AnalyzeVarDecl(var);
     }
-    for (auto* field : CurrentClass->Members->Fields)
-    {
-        AnalyzeVarDecl(field->VarDecl, false);
-    }
+    for (auto* field : CurrentClass->Members->Fields) { AnalyzeVarDecl(field->VarDecl, false); }
 }
 
 void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
@@ -279,6 +276,7 @@ void ClassAnalyzer::AnalyzeStmt(StmtNode* stmt)
 
 void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 {
+    method->Class = CurrentClass;
     CurrentMethod = method;
 
     const auto& allMethods = CurrentClass->Members->Methods;
@@ -306,6 +304,7 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 
 void ClassAnalyzer::AnalyzeField(FieldDeclNode* field)
 {
+    field->Class = CurrentClass;
     AnalyzeVarDecl(field->VarDecl);
     const auto& allFields = CurrentClass->Members->Fields;
     const auto fieldNameCount = std::count_if(allFields.begin(), allFields.end(), [&](auto* other)
@@ -343,8 +342,8 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
     AnalyzeAccessExpr(expr->ArrayExpr);
     expr->CallForAllChildren([this](ExprNode* expr)
     {
-            AnalyzeAccessExpr(expr->Access);
-            AnalyzeAccessExpr(expr->ArrayExpr);
+        AnalyzeAccessExpr(expr->Access);
+        AnalyzeAccessExpr(expr->ArrayExpr);
     });
     CalculateTypesForExpr(changed);
     return changed;
@@ -395,15 +394,15 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(AccessExpr* expr)
 
     auto const& allMethods = CurrentClass->Members->Methods;
     const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
-        {
-            return methodName == method->Identifier && callTypes ==
-                ToTypes(method->ArgumentDtos);
-        });
+    {
+        return methodName == method->Identifier && callTypes ==
+               ToTypes(method->ArgumentDtos);
+    });
 
     if (foundMethod == allMethods.end())
     {
         Errors.push_back("Cannot call method with name " + std::string{ methodName } + " with arguments of types " +
-            ToString(callTypes));
+                         ToString(callTypes));
         return;
     }
 
@@ -440,15 +439,15 @@ void ClassAnalyzer::AnalyzeDotMethodCall(AccessExpr* expr)
 
     auto const& allMethods = foundClass->Members->Methods;
     const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
-        {
-            return methodName == method->Identifier && callTypes ==
-                ToTypes(method->ArgumentDtos);
-        });
+    {
+        return methodName == method->Identifier && callTypes ==
+               ToTypes(method->ArgumentDtos);
+    });
 
     if (foundMethod == allMethods.end())
     {
         Errors.push_back("Cannot call method with name " + std::string{ methodName } + " with arguments of types " +
-            ToString(callTypes));
+                         ToString(callTypes));
         return;
     }
 
@@ -650,7 +649,9 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
         auto* foundClass = FindClass(typeForPrevious);
         if (foundClass == nullptr)
         {
-            Errors.push_back("No member " + std::string{ access->Identifier } + " in type " + ToString(typeForPrevious));
+            Errors.push_back("No member " + std::string{
+                                 access->Identifier
+                             } + " in type " + ToString(typeForPrevious));
             type.IsUnknown = true;
             access->AType = type;
             return type;
@@ -662,7 +663,9 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
         });
         if (foundField == fields.end())
         {
-            Errors.push_back("No member " + std::string{ access->Identifier } + " in type " + ToString(typeForPrevious));
+            Errors.push_back("No member " + std::string{
+                                 access->Identifier
+                             } + " in type " + ToString(typeForPrevious));
             type.IsUnknown = true;
             access->AType = type;
             return type;
@@ -764,4 +767,3 @@ ClassDeclNode* ClassAnalyzer::FindClass(DataType const& dataType) const
     }
     return nullptr;
 }
-

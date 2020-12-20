@@ -92,8 +92,8 @@ void ToDot(ExprSeqNode* node, std::ostream& out, Node* parent, const bool markNe
 void ToDot(AccessExpr* const node, std::ostream& out, const bool isType)
 {
     const auto nameSuffix = isType
-                        ? ""
-                        : "\nCalculated data type: " + ToString(node->AType);
+                                ? ""
+                                : "\nCalculated data type: " + ToString(node->AType);
     switch (node->Type)
     {
     case AccessExpr::TypeT::Expr:
@@ -134,10 +134,7 @@ void ToDot(AccessExpr* const node, std::ostream& out, const bool isType)
     case AccessExpr::TypeT::SimpleMethodCall:
         out << MakeNode(node->Id, "Method call\\nMethodName: " + std::string{ node->Identifier } + nameSuffix);
         ToDot(node->Arguments, out, node, true, "argument");
-        if (node->ActualMethodCall)
-        {
-            out << MakeConnection(node->Id, node->ActualMethodCall->Id, "calls");
-        }
+        if (node->ActualMethodCall) { out << MakeConnection(node->Id, node->ActualMethodCall->Id, "calls"); }
         return;
     case AccessExpr::TypeT::Dot:
         out << MakeNode(node->Id, "." + std::string{ node->Identifier } + nameSuffix);
@@ -187,10 +184,7 @@ void ToDot(ExprNode* const node, std::ostream& out)
     auto name = node->Type == ExprNode::TypeT::Cast
                     ? "Cast to " + ToString(node->StandardTypeChild)
                     : ToString(node->Type);
-    if (node->Type == ExprNode::TypeT::StandardArrayNew)
-    {
-        name += " " + ToString(node->StandardTypeChild);
-    }
+    if (node->Type == ExprNode::TypeT::StandardArrayNew) { name += " " + ToString(node->StandardTypeChild); }
 
     name += "\nCalculated data type: "s + ToString(node->AType);
 

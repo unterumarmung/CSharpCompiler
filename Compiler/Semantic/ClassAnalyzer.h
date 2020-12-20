@@ -63,26 +63,64 @@ struct ConstantTable
     std::vector<Constant> Constants;
     using ConstantRef = Constant const&;
 
-    IdT FindUtf8(std::string const& utf8);
+    IdT FindUtf8(std::string_view utf8);
 
     IdT FindInt(IntT i);
 
     IdT FindFloat(FloatT i);
 
-    IdT FindClass(std::string const& className);
+    IdT FindClass(std::string_view className);
 
-    IdT FindNaT(std::string const& name, std::string const& type);
+    IdT FindNaT(std::string_view name, std::string_view type);
 
-    IdT FindFieldRef(std::string const& className, std::string const& name, std::string const& type);
+    IdT FindFieldRef(std::string_view className, std::string_view name, std::string_view type);
 
-    IdT FindMethodRef(std::string const& className, std::string const& name, std::string const& type);
+    IdT FindMethodRef(std::string_view className, std::string_view name, std::string_view type);
 };
+
+
+enum class AccessFlags
+{
+    Public = 0x0001,
+    Protected = 0x0004,
+    Private = 0x0002,
+    Static = 0x0008,
+    Final = 0x0010
+};
+
+inline AccessFlags ToAccessFlags(VisibilityModifier visibility)
+{
+    switch (visibility)
+    {
+    case VisibilityModifier::Public:
+        return AccessFlags::Public;
+    case VisibilityModifier::Protected:
+        return AccessFlags::Protected;
+    case VisibilityModifier::Private:
+        return AccessFlags::Private;
+    }
+    return {};
+}
+
+struct JvmField
+{
+    IdT NameId;
+    IdT TypeId;
+    AccessFlags AccessFlags;
+};
+
+struct ClassFile
+{
+    ConstantTable Constants;
+    std::vector<JvmField> Fields;
+};
+
 
 struct ClassAnalyzer
 {
     MethodDeclNode* CurrentMethod = nullptr;
     ClassDeclNode* CurrentClass = nullptr;
-    ConstantTable Table;
+    ClassFile File;
     std::vector<std::string> Errors;
     NamespaceDeclNode* Namespace;
 
@@ -133,4 +171,6 @@ struct ClassAnalyzer
     void ValidateTypename(DataType& dataType);
 
     [[nodiscard]] ClassDeclNode* FindClass(DataType const& dataType) const;
+
+    void FillTables(FieldDeclNode* field);
 };

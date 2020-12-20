@@ -51,6 +51,43 @@ struct DataType
     }
 
     bool operator!=(const DataType& data) const { return !(*this == data); }
+
+    [[nodiscard]] std::string ToDescriptor() const
+    {
+        if (ArrayArity > 0)
+        {
+            auto subtype = *this;
+            subtype.ArrayArity -= 1;
+            return "[" + subtype.ToDescriptor();
+        }
+        switch (AType)
+        {
+        case TypeT::Char:
+            return "C";
+        case TypeT::Int:
+            return "I";
+        case TypeT::Bool:
+            return "Z";
+        case TypeT::Float:
+            return "F";
+        case TypeT::String:
+            return "Ljava/lang/String;";
+        case TypeT::Complex:
+        {
+            std::string value = "L";
+            for (auto const& part : ComplexType)
+            {
+                value += part;
+                value += '/';
+            }
+            value.pop_back();
+            value += ";";
+            return value;
+        }
+        case TypeT::Void:
+            return "V";
+        }
+    }
 };
 
 inline std::string ToString(DataType data)

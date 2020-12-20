@@ -94,16 +94,16 @@ Constant Constant::CreateMethodRef(IdT natId, IdT classId)
     return constant;
 }
 
-IdT ConstantTable::FindUtf8(std::string const& utf8)
+IdT ConstantTable::FindUtf8(std::string_view utf8)
 {
-    const auto constant = Constant::CreateUtf8(utf8);
+    const auto constant = Constant::CreateUtf8(std::string{ utf8 });
     const auto foundIter = std::find(Constants.begin(), Constants.end(), constant);
     if (foundIter == Constants.end())
     {
         Constants.push_back(constant);
         return Constants.end() - Constants.begin();
     }
-    return foundIter - Constants.begin();
+    return foundIter - Constants.begin() + 1;
 }
 
 IdT ConstantTable::FindInt(IntT i)
@@ -115,7 +115,7 @@ IdT ConstantTable::FindInt(IntT i)
         Constants.push_back(constant);
         return Constants.end() - Constants.begin();
     }
-    return foundIter - Constants.begin();
+    return foundIter - Constants.begin() + 1;
 }
 
 IdT ConstantTable::FindFloat(FloatT i)
@@ -127,10 +127,10 @@ IdT ConstantTable::FindFloat(FloatT i)
         Constants.push_back(constant);
         return Constants.end() - Constants.begin();
     }
-    return foundIter - Constants.begin();
+    return foundIter - Constants.begin() + 1;
 }
 
-IdT ConstantTable::FindClass(std::string const& className)
+IdT ConstantTable::FindClass(std::string_view className)
 {
     const auto constant = Constant::CreateClass(FindUtf8(className));
     const auto foundIter = std::find(Constants.begin(), Constants.end(), constant);
@@ -139,10 +139,10 @@ IdT ConstantTable::FindClass(std::string const& className)
         Constants.push_back(constant);
         return Constants.end() - Constants.begin();
     }
-    return foundIter - Constants.begin();
+    return foundIter - Constants.begin() + 1;
 }
 
-IdT ConstantTable::FindNaT(std::string const& name, std::string const& type)
+IdT ConstantTable::FindNaT(std::string_view name, std::string_view type)
 {
     const auto constant = Constant::CreateNaT(FindUtf8(name), FindUtf8(type));
     const auto foundIter = std::find(Constants.begin(), Constants.end(), constant);
@@ -151,10 +151,10 @@ IdT ConstantTable::FindNaT(std::string const& name, std::string const& type)
         Constants.push_back(constant);
         return Constants.end() - Constants.begin();
     }
-    return foundIter - Constants.begin();
+    return foundIter - Constants.begin() + 1;
 }
 
-IdT ConstantTable::FindFieldRef(std::string const& className, std::string const& name, std::string const& type)
+IdT ConstantTable::FindFieldRef(std::string_view className, std::string_view name, std::string_view type)
 {
     const auto constant = Constant::CreateFieldRef(FindNaT(name, type), FindClass(className));
     const auto foundIter = std::find(Constants.begin(), Constants.end(), constant);
@@ -163,10 +163,10 @@ IdT ConstantTable::FindFieldRef(std::string const& className, std::string const&
         Constants.push_back(constant);
         return Constants.end() - Constants.begin();
     }
-    return foundIter - Constants.begin();
+    return foundIter - Constants.begin() + 1;
 }
 
-IdT ConstantTable::FindMethodRef(std::string const& className, std::string const& name, std::string const& type)
+IdT ConstantTable::FindMethodRef(std::string_view className, std::string_view name, std::string_view type)
 {
     const auto constant = Constant::CreateMethodRef(FindNaT(name, type), FindClass(className));
     const auto foundIter = std::find(Constants.begin(), Constants.end(), constant);
@@ -175,7 +175,7 @@ IdT ConstantTable::FindMethodRef(std::string const& className, std::string const
         Constants.push_back(constant);
         return Constants.end() - Constants.begin();
     }
-    return foundIter - Constants.begin();
+    return foundIter - Constants.begin() + 1;
 }
 
 ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_) : CurrentClass{ node }
@@ -185,7 +185,6 @@ ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_)
 
 void ClassAnalyzer::Analyze()
 {
-    Table.FindUtf8("Code");
     AnalyzeClass(CurrentClass);
 }
 
@@ -314,12 +313,13 @@ void ClassAnalyzer::AnalyzeField(FieldDeclNode* field)
     if (fieldNameCount > 1)
     {
         Errors.push_back("Field with name \"" + std::string{ field->VarDecl->Identifier } + "\" already defined!");
+        return;
     }
+    FillTables(field);
 }
 
 void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
 {
-    Table.FindClass(std::string{ value->ClassName });
     for (auto* field : value->Members->Fields) { AnalyzeField(field); }
     for (auto* method : value->Members->Methods)
     {
@@ -766,4 +766,12 @@ ClassDeclNode* ClassAnalyzer::FindClass(DataType const& dataType) const
             return class_;
     }
     return nullptr;
+}
+
+void ClassAnalyzer::FillTables(FieldDeclNode* field)
+{
+    const auto nameId = File.Constants.FindUtf8(field->VarDecl->Identifier);
+    const auto typeId = File.Constants.FindUtf8(field->VarDecl->AType.ToDescriptor());
+    const auto accessFlags = ToAccessFlags(field->Visibility);
+    File.Fields.push_back({ nameId, typeId, accessFlags });
 }

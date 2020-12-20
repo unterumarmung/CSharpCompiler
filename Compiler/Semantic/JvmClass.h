@@ -36,6 +36,8 @@ struct DataType
         Void = 6
     } AType{};
 
+    static const DataType VoidType;
+
     int ArrayArity = 0;
 
     bool IsUnknown{};

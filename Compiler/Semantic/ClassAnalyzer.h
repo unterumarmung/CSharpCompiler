@@ -79,13 +79,14 @@ struct ConstantTable
 };
 
 
-enum class AccessFlags
+enum class AccessFlags : uint16_t
 {
     Public = 0x0001,
     Protected = 0x0004,
     Private = 0x0002,
     Static = 0x0008,
-    Final = 0x0010
+    Final = 0x0010,
+    Super = 0x0020
 };
 
 inline AccessFlags ToAccessFlags(VisibilityModifier visibility)
@@ -111,6 +112,15 @@ struct JvmField
 
 struct ClassFile
 {
+    static constexpr uint32_t MagicConstant = 0xCAFEBABE;
+    static constexpr uint16_t MinorVersion = 0;
+    static constexpr uint16_t MajorVersion = 52;
+
+    AccessFlags AccessFlags = {};
+    uint16_t ThisClass = 0;
+    uint16_t SuperClass = 0;
+    static constexpr uint16_t InterfaceCount = 0;
+
     ConstantTable Constants;
     std::vector<JvmField> Fields;
 };
@@ -141,6 +151,8 @@ struct ClassAnalyzer
     void AnalyzeForEach(ForEachNode* forEach);
 
     void AnalyzeIf(IfNode* if_);
+
+    void AnalyzeReturn(StmtNode* node);
 
     void AnalyzeStmt(StmtNode* stmt);
 

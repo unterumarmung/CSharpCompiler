@@ -183,16 +183,14 @@ ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_)
 {
 }
 
-void ClassAnalyzer::Analyze()
-{
-    AnalyzeClass(CurrentClass);
-}
+void ClassAnalyzer::Analyze() { AnalyzeClass(CurrentClass); }
 
 void ClassAnalyzer::AnalyzeMemberSignatures()
 {
     for (auto* method : CurrentClass->Members->Methods)
     {
         method->AReturnType = ToDataType(method->Type);
+        ValidateTypename(method->AReturnType);
         for (auto* var : method->Arguments->GetSeq())
             AnalyzeVarDecl(var);
     }
@@ -261,6 +259,31 @@ void ClassAnalyzer::AnalyzeIf(IfNode* if_)
     AnalyzeStmt(if_->ElseBranch);
 }
 
+void ClassAnalyzer::AnalyzeReturn(StmtNode* node)
+{
+    if (node->Type != StmtNode::TypeT::Return)
+        return;
+
+    auto const isLast = CurrentMethod->Body->GetSeq().back() == node;
+    if (!isLast)
+    {
+        Errors.emplace_back("Return statement must me the last in the method body!");
+        return;
+    }
+
+    node->Expr = AnalyzeExpr(node->Expr);
+
+    if (node->Expr == nullptr && CurrentMethod->AReturnType != DataType::VoidType)
+    {
+        Errors.emplace_back("Cannot return empty expression in non-void method " + std::string{CurrentMethod->Identifier});
+    }
+    if (node->Expr && node->Expr->AType != CurrentMethod->AReturnType)
+    {
+        Errors.emplace_back("Cannot return value of type " + ToString(node->Expr->AType) +
+                            " in the method which return value is " + ToString(CurrentMethod->AReturnType));
+    }
+}
+
 void ClassAnalyzer::AnalyzeStmt(StmtNode* stmt)
 {
     AnalyzeVarDecl(stmt->VarDecl);
@@ -270,6 +293,7 @@ void ClassAnalyzer::AnalyzeStmt(StmtNode* stmt)
     AnalyzeForEach(stmt->ForEach);
     AnalyzeIf(stmt->If);
     stmt->Expr = AnalyzeExpr(stmt->Expr);
+    AnalyzeReturn(stmt);
 }
 
 
@@ -290,14 +314,29 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
     {
         Errors.push_back("Method with name "
                          + std::string(method->Identifier)
-                         + "and with arguments of types: "
+                         + " and with arguments of types: "
                          + ToString(ToTypes(method->ArgumentDtos))
                          + " has been already defined");
+    }
+
+    if (method->Body->GetSeq().empty() && method->AReturnType != DataType::VoidType)
+    {
+        Errors.push_back("There must be return statement in non-void method with name " + std::string{method->Identifier});
+        CurrentMethod = nullptr;
+        return;
     }
 
     for (auto* var : method->Arguments->GetSeq())
         AnalyzeVarDecl(var);
     for (auto* stmt : method->Body->GetSeq()) { AnalyzeStmt(stmt); }
+
+    if (!method->Body->GetSeq().empty() 
+        && method->Body->GetSeq().back()->Type != StmtNode::TypeT::Return
+        && method->AReturnType != DataType::VoidType)
+    {
+        Errors.push_back("Last statement in method " + std::string{ method->Identifier } + " must be return!");
+    }
+
     CurrentMethod = nullptr;
 }
 
@@ -323,7 +362,6 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
     for (auto* field : value->Members->Fields) { AnalyzeField(field); }
     for (auto* method : value->Members->Methods)
     {
-        method->AReturnType = ToDataType(method->Type);
         auto&& varDeclNodes = method->Arguments->GetSeq();
         std::transform(varDeclNodes.begin(), varDeclNodes.end(),
                        std::back_inserter(method->ArgumentDtos),
@@ -707,6 +745,7 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             {
                 type = var->VarDecl->AType;
                 isVariableFound = true;
+                access->ActualField = var;
             }
         }
 

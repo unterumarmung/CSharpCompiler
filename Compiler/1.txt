@@ -23,6 +23,7 @@ namespace A
         }
         public int B(int i)
         {
+            return 1;
         }
     }
 }

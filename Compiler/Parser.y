@@ -241,7 +241,7 @@ stmt: ';'                           { $$ = new StmtNode(); }
     | if_stmt                       { $$ = new StmtNode($1); }
     | foreach_stmt                  { $$ = new StmtNode($1); }
     | '{' stmt_seq_optional '}'     { $$ = new StmtNode($2); }
-    | RETURN expr ';'               { $$ = new StmtNode($2, /* isReturn= */ true); }
+    | RETURN expr_optional ';'      { $$ = new StmtNode($2, /* isReturn= */ true); }
 ;
 
 stmt_seq: stmt              { $$ = new StmtSeqNode($1); }

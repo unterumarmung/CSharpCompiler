@@ -2,12 +2,21 @@ using System;
 using System.Collections.Generic;
 namespace A
 {
+    public class C
+    {
+        public int Foo;
+        public B Bar;
+        public B Method()
+        {
+          return Bar;
+        }
+    }
     public class B
     {
-        public int[] arr;
+        public C[] arr;
         public void C(int[] array)
         {
-           B var = new B;
+		arr[0].Method().B(array[B(array[0])]);
         }
         public void B(int[] array)
         {

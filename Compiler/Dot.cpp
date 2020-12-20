@@ -187,9 +187,21 @@ void ToDot(ExprNode* const node, std::ostream& out)
     auto name = node->Type == ExprNode::TypeT::Cast
                     ? "Cast to " + ToString(node->StandardTypeChild)
                     : ToString(node->Type);
+    if (node->Type == ExprNode::TypeT::StandardArrayNew)
+    {
+        name += " " + ToString(node->StandardTypeChild);
+    }
+
     name += "\nCalculated data type: "s + ToString(node->AType);
 
     out << MakeNode(node->Id, name);
+
+    if (node->Type == ExprNode::TypeT::StandardArrayNew)
+    {
+        ToDot(node->Child, out);
+        out << MakeConnection(node->Id, node->Child->Id, "Array size");
+    }
+
     if (IsBinary(node->Type))
     {
         ToDot(node->Left, out);

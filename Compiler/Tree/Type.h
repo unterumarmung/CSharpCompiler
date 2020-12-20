@@ -72,7 +72,6 @@ inline std::string ToString(const StandardArrayType type)
 }
 
 
-
 struct TypeNode final : Node
 {
     [[nodiscard]] std::string_view Name() const noexcept override { return "Type"; }

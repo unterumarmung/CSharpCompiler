@@ -37,7 +37,8 @@ struct ExprNode final : Node
         Division_assign,
         Increment,
         Decrement,
-        AssignOnArrayElement
+        AssignOnArrayElement,
+        StandardArrayNew
     } Type{};
 
     DataType AType;
@@ -46,9 +47,9 @@ struct ExprNode final : Node
     ExprNode* Left{};
     ExprNode* Right{};
 
-    // »спользуетс€ дл€ операции каста выражени€
+    // »спользуетс€ дл€ операции каста выражени€ и массива простых типов
     StandardType StandardTypeChild{};
-    // »спользуетс€ дл€ унарных операций
+    // »спользуетс€ дл€ унарных операций и new массива простых типов
     ExprNode* Child{};
 
     AccessExpr* Access{};
@@ -76,12 +77,16 @@ struct ExprNode final : Node
 
     static ExprNode* FromCast(StandardType standardType, ExprNode* expr);
 
+    static ExprNode* FromNew(StandardType standardType, ExprNode* expr);
+
     [[nodiscard]] std::string_view Name() const noexcept override { return "Expr"; }
 
     ExprNode* ToAssignOnArrayElement() const;
 
     void ApplyToAllChildren(const std::function<ExprNode*(ExprNode*)>& mapFunction);
+
     void CallForAllChildren(const std::function<void(ExprNode*)>& function) const;
+
 private:
     explicit ExprNode() : Node()
     {
@@ -217,6 +222,8 @@ inline std::string ToString(const ExprNode::TypeT type)
         return "--";
     case ExprNode::TypeT::AssignOnArrayElement:
         return "[]=";
+    case ExprNode::TypeT::StandardArrayNew:
+        return "new[]";
     default: ;
     }
 }

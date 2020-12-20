@@ -178,7 +178,8 @@ IdT ConstantTable::FindMethodRef(std::string const& className, std::string const
     return foundIter - Constants.begin();
 }
 
-ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_) : CurrentClass{ node }, Namespace{ namespace_ }
+ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_) : CurrentClass{ node }
+  , Namespace{ namespace_ }
 {
 }
 
@@ -188,14 +189,35 @@ void ClassAnalyzer::Analyze()
     AnalyzeClass(CurrentClass);
 }
 
-void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl)
+void ClassAnalyzer::AnalyzeMemberSignatures()
+{
+    for (auto* method : CurrentClass->Members->Methods)
+    {
+        method->AReturnType = ToDataType(method->Type);
+        for (auto* var : method->Arguments->GetSeq())
+            AnalyzeVarDecl(var);
+    }
+    for (auto* field : CurrentClass->Members->Fields)
+    {
+        AnalyzeVarDecl(field->VarDecl, false);
+    }
+}
+
+void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
 {
     if (!varDecl)
         return;
     varDecl->AType = ToDataType(varDecl->VarType);
     ValidateTypename(varDecl->AType);
-    if (CurrentMethod) { CurrentMethod->Variables.push_back(varDecl); }
     varDecl->InitExpr = AnalyzeExpr(varDecl->InitExpr);
+
+    if (withInit && varDecl->InitExpr && varDecl->AType != varDecl->InitExpr->AType)
+    {
+        Errors.push_back("Cannot initialize variable of type " + ToString(varDecl->AType) + " with object of type " +
+                         ToString(varDecl->InitExpr->AType));
+    }
+
+    if (CurrentMethod) { CurrentMethod->Variables.push_back(varDecl); }
 }
 
 void ClassAnalyzer::AnalyzeWhile(WhileNode* while_)
@@ -255,32 +277,30 @@ void ClassAnalyzer::AnalyzeStmt(StmtNode* stmt)
 }
 
 
-
 void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 {
     CurrentMethod = method;
 
     const auto& allMethods = CurrentClass->Members->Methods;
     const auto sameMethodsCount = std::count_if(allMethods.begin(), allMethods.end(), [&](auto* otherMethod)
-        {
-            return method->Identifier == otherMethod->Identifier && ToTypes(method->ArgumentDtos) == ToTypes(otherMethod->ArgumentDtos);
-        });
+    {
+        return method->Identifier == otherMethod->Identifier &&
+               ToTypes(method->ArgumentDtos) ==
+               ToTypes(otherMethod->ArgumentDtos);
+    });
 
     if (sameMethodsCount > 1)
     {
         Errors.push_back("Method with name "
-            + std::string(method->Identifier)
-            + "and with arguments of types: "
-            + ToString(ToTypes(method->ArgumentDtos))
-            + " has been already defined");
+                         + std::string(method->Identifier)
+                         + "and with arguments of types: "
+                         + ToString(ToTypes(method->ArgumentDtos))
+                         + " has been already defined");
     }
 
     for (auto* var : method->Arguments->GetSeq())
         AnalyzeVarDecl(var);
-    for (auto* stmt : method->Body->GetSeq())
-    {
-        AnalyzeStmt(stmt);
-    }
+    for (auto* stmt : method->Body->GetSeq()) { AnalyzeStmt(stmt); }
     CurrentMethod = nullptr;
 }
 
@@ -289,9 +309,9 @@ void ClassAnalyzer::AnalyzeField(FieldDeclNode* field)
     AnalyzeVarDecl(field->VarDecl);
     const auto& allFields = CurrentClass->Members->Fields;
     const auto fieldNameCount = std::count_if(allFields.begin(), allFields.end(), [&](auto* other)
-        {
-            return field->VarDecl->Identifier == other->VarDecl->Identifier;
-        });
+    {
+        return field->VarDecl->Identifier == other->VarDecl->Identifier;
+    });
     if (fieldNameCount > 1)
     {
         Errors.push_back("Field with name \"" + std::string{ field->VarDecl->Identifier } + "\" already defined!");
@@ -307,13 +327,10 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
         method->AReturnType = ToDataType(method->Type);
         auto&& varDeclNodes = method->Arguments->GetSeq();
         std::transform(varDeclNodes.begin(), varDeclNodes.end(),
-            std::back_inserter(method->ArgumentDtos),
-            ToMethodArgumentDto);
+                       std::back_inserter(method->ArgumentDtos),
+                       ToMethodArgumentDto);
     }
-    for (auto* method : value->Members->Methods)
-    {
-        AnalyzeMethod(method);
-    }
+    for (auto* method : value->Members->Methods) { AnalyzeMethod(method); }
 }
 
 [[nodiscard]] ExprNode* ClassAnalyzer::AnalyzeExpr(ExprNode* expr)
@@ -322,10 +339,23 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
         return nullptr;
     auto* changed = ReplaceAssignmentsOnArrayElements(expr);
     changed->ApplyToAllChildren(ReplaceAssignmentsOnArrayElements);
-    AnalyzeSimpleMethodCall(expr);
-    expr->CallForAllChildren([this](ExprNode* expr) { AnalyzeSimpleMethodCall(expr); });
+    AnalyzeAccessExpr(expr->Access);
+    AnalyzeAccessExpr(expr->ArrayExpr);
+    expr->CallForAllChildren([this](ExprNode* expr)
+    {
+            AnalyzeAccessExpr(expr->Access);
+            AnalyzeAccessExpr(expr->ArrayExpr);
+    });
     CalculateTypesForExpr(changed);
     return changed;
+}
+
+void ClassAnalyzer::AnalyzeAccessExpr(AccessExpr* expr)
+{
+    if (!expr)
+        return;
+    AnalyzeSimpleMethodCall(expr);
+    AnalyzeDotMethodCall(expr);
 }
 
 void ClassAnalyzer::AnalyzeSimpleMethodCall(ExprNode* node)
@@ -333,6 +363,19 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(ExprNode* node)
     if (!node)
         return;
     auto* expr = node->Access;
+    AnalyzeSimpleMethodCall(expr);
+}
+
+void ClassAnalyzer::AnalyzeDotMethodCall(ExprNode* node)
+{
+    if (!node)
+        return;
+    auto* expr = node->Access;
+    AnalyzeDotMethodCall(expr);
+}
+
+void ClassAnalyzer::AnalyzeSimpleMethodCall(AccessExpr* expr)
+{
     if (!expr)
         return;
     if (expr->Type != AccessExpr::TypeT::SimpleMethodCall)
@@ -346,32 +389,73 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(ExprNode* node)
     {
         auto const& arguments = expr->Arguments->GetSeq();
         std::vector<DataType> types(arguments.size());
-        std::transform(arguments.begin(), arguments.end(), types.begin(), [](auto& arg)
-            {
-                return arg->AType;
-            });
+        std::transform(arguments.begin(), arguments.end(), types.begin(), [](auto& arg) { return arg->AType; });
         return types;
     }();
 
     auto const& allMethods = CurrentClass->Members->Methods;
     const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
-    {
-        return methodName == method->Identifier && callTypes == ToTypes(method->ArgumentDtos);
-    });
+        {
+            return methodName == method->Identifier && callTypes ==
+                ToTypes(method->ArgumentDtos);
+        });
 
     if (foundMethod == allMethods.end())
     {
-        Errors.push_back("Cannot call method with name " + std::string{ methodName } + " with arguments of types " + ToString(callTypes));
+        Errors.push_back("Cannot call method with name " + std::string{ methodName } + " with arguments of types " +
+            ToString(callTypes));
         return;
     }
 
     expr->ActualMethodCall = *foundMethod;
 }
 
-bool IsIndexType(const DataType data)
+void ClassAnalyzer::AnalyzeDotMethodCall(AccessExpr* expr)
 {
-    return data.AType == DataType::TypeT::Int && data.ArrayArity == 0;
+    if (!expr)
+        return;
+    if (expr->Type != AccessExpr::TypeT::DotMethodCall)
+        return;
+
+    for (auto*& argument : expr->Arguments->GetSeq())
+        argument = AnalyzeExpr(argument);
+
+    AnalyzeAccessExpr(expr->Previous);
+    const auto typeForPrevious = CalculateTypeForAccessExpr(expr->Previous);
+    auto* foundClass = FindClass(typeForPrevious);
+    if (foundClass == nullptr)
+    {
+        Errors.push_back("No member " + std::string{ expr->Identifier } + " in type " + ToString(typeForPrevious));
+        return;
+    }
+
+    const auto methodName = expr->Identifier;
+    const auto callTypes = [expr]()
+    {
+        auto const& arguments = expr->Arguments->GetSeq();
+        std::vector<DataType> types(arguments.size());
+        std::transform(arguments.begin(), arguments.end(), types.begin(), [](auto& arg) { return arg->AType; });
+        return types;
+    }();
+
+    auto const& allMethods = foundClass->Members->Methods;
+    const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
+        {
+            return methodName == method->Identifier && callTypes ==
+                ToTypes(method->ArgumentDtos);
+        });
+
+    if (foundMethod == allMethods.end())
+    {
+        Errors.push_back("Cannot call method with name " + std::string{ methodName } + " with arguments of types " +
+            ToString(callTypes));
+        return;
+    }
+
+    expr->ActualMethodCall = *foundMethod;
 }
+
+auto IsIndexType(const DataType& data) -> bool { return data.AType == DataType::TypeT::Int && data.ArrayArity == 0; }
 
 void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
 {
@@ -391,13 +475,56 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         return;
     }
 
+    if (node->Type == ExprNode::TypeT::ArrayNew)
+    {
+        if (const auto& elements = node->ExprSeq->GetSeq();
+            !elements.empty())
+        {
+            for (auto* element : elements) { CalculateTypesForExpr(element); }
+            auto type = elements.front()->AType;
+            std::vector<DataType> types(elements.size());
+            std::transform(elements.begin(), elements.end(), types.begin(), [](ExprNode* node) { return node->AType; });
+            const bool allElementsHaveSameType = std::all_of(types.begin(), types.end(),
+                                                             [&type](auto& other) { return type == other; });
+
+            if (!allElementsHaveSameType)
+            {
+                Errors.push_back("Cannot create array with different types: " + ToString(types));
+                return;
+            }
+        }
+
+        if (node->TypeNode != nullptr)
+        {
+            const auto dataType = ToDataType(node->TypeNode);
+            if (dataType.ArrayArity == 0)
+            {
+                Errors.push_back("Cannot initialize array with array-like syntax the type " + ToString(dataType));
+                return;
+            }
+        }
+    }
+
+    if (node->Type == ExprNode::TypeT::StandardArrayNew)
+    {
+        CalculateTypesForExpr(node->Child);
+        auto dataType = ToDataType(node->StandardTypeChild);
+        dataType.ArrayArity += 1;
+        node->AType = dataType;
+        if (node->Child->AType != DataType{ DataType::TypeT::Int })
+        {
+            Errors.push_back("Array size must be int, not " + ToString(node->Child->AType));
+        }
+        return;
+    }
+
     const DataType boolType = { DataType::TypeT::Bool, {}, {}, {} };
     if (IsBinary(node->Type))
     {
         CalculateTypesForExpr(node->Left);
         CalculateTypesForExpr(node->Right);
-        const auto leftType = node->Left->AType;
-        const auto rightType = node->Right->AType;
+        const auto& leftType = node->Left->AType;
+        const auto& rightType = node->Right->AType;
         if (leftType == rightType)
         {
             node->AType = leftType;
@@ -409,7 +536,8 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
             if (boolType == leftType && boolType == rightType)
                 return;
         }
-        Errors.push_back("Types '" + ToString(leftType) + "' and '" + ToString(rightType) + "' are not compatible with operation " + ToString(node->Type));
+        Errors.push_back("Types '" + ToString(leftType) + "' and '" + ToString(rightType) +
+                         "' are not compatible with operation " + ToString(node->Type));
     }
 
     if (IsUnary(node->Type))
@@ -420,7 +548,8 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         if (IsLogical(node->Type) && node->Child->AType != boolType)
         {
             node->AType = boolType;
-            Errors.push_back("Type '" + ToString(node->Child->AType) +  "' is not compatible with operation " + ToString(node->Type));
+            Errors.push_back("Type '" + ToString(node->Child->AType) + "' is not compatible with operation " +
+                             ToString(node->Type));
         }
         return;
     }
@@ -442,7 +571,8 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
 
         if (thisType != node->AssignExpr->AType)
         {
-            Errors.push_back("Cannot assign value of type " + ToString(node->AssignExpr->AType) + " to value of type " + ToString(thisType));
+            Errors.push_back("Cannot assign value of type " + ToString(node->AssignExpr->AType) + " to value of type " +
+                             ToString(thisType));
             return;
         }
 
@@ -511,8 +641,49 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
         }
         auto thisDataType = dataTypeForPrevious;
         thisDataType.ArrayArity -= 1;
-        access->AType = type;
+        access->AType = thisDataType;
         return thisDataType;
+    }
+    case AccessExpr::TypeT::Dot:
+    {
+        auto typeForPrevious = CalculateTypeForAccessExpr(access->Previous);
+        auto* foundClass = FindClass(typeForPrevious);
+        if (foundClass == nullptr)
+        {
+            Errors.push_back("No member " + std::string{ access->Identifier } + " in type " + ToString(typeForPrevious));
+            type.IsUnknown = true;
+            access->AType = type;
+            return type;
+        }
+        auto const& fields = foundClass->Members->Fields;
+        const auto foundField = std::find_if(fields.begin(), fields.end(), [&](FieldDeclNode* field)
+        {
+            return field->VarDecl->Identifier == access->Identifier;
+        });
+        if (foundField == fields.end())
+        {
+            Errors.push_back("No member " + std::string{ access->Identifier } + " in type " + ToString(typeForPrevious));
+            type.IsUnknown = true;
+            access->AType = type;
+            return type;
+        }
+        access->ActualField = *foundField;
+        access->AType = access->ActualField->VarDecl->AType;
+        return access->AType;
+    }
+    case AccessExpr::TypeT::DotMethodCall:
+    {
+        if (access->ActualMethodCall)
+        {
+            type = access->ActualMethodCall->AReturnType;
+            access->AType = type;
+        }
+        else
+        {
+            type = { DataType::TypeT::Void, {}, true };
+            access->AType = type;
+        }
+        return type;
     }
     case AccessExpr::TypeT::Identifier:
     {
@@ -541,8 +712,8 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             access->AType = type;
             return type;
         }
-            
-        Errors.push_back("Variable with name \"" + name + "\" is not found"); 
+
+        Errors.push_back("Variable with name \"" + name + "\" is not found");
     }
     }
     type.IsUnknown = true;
@@ -558,27 +729,39 @@ ExprNode* ClassAnalyzer::ReplaceAssignmentsOnArrayElements(ExprNode* node)
     return node;
 }
 
-void ClassAnalyzer::ValidateTypename(DataType & dataType)
+void ClassAnalyzer::ValidateTypename(DataType& dataType)
 {
-    if (dataType.IsUnknown)
-    {
-        Errors.emplace_back("Cannot create object of unknown type");
-    }
+    if (dataType.IsUnknown) { Errors.emplace_back("Cannot create object of unknown type"); }
     else if (dataType.AType == DataType::TypeT::Complex)
     {
         const auto& allClassesInNamespace = Namespace->Members->Classes;
-        const auto foundClass = std::find_if(allClassesInNamespace.begin(), allClassesInNamespace.end(), [&](ClassDeclNode* class_)
-            {
-                return class_->ClassName == dataType.ComplexType.front();
-            });
+        const auto foundClass = std::find_if(allClassesInNamespace.begin(), allClassesInNamespace.end(),
+                                             [&](ClassDeclNode* class_)
+                                             {
+                                                 return class_->ClassName == dataType.ComplexType.front();
+                                             });
         if (foundClass == allClassesInNamespace.end())
         {
-            Errors.push_back("No class " + ToString(dataType) + "in namespace " + std::string{ Namespace->NamespaceName });
+            Errors.push_back("No class " + ToString(dataType) + "in namespace " + std::string{
+                                 Namespace->NamespaceName
+                             });
             dataType.IsUnknown = true;
         }
-        else
-        {
-            dataType.ComplexType.insert(dataType.ComplexType.begin(), std::string{ Namespace->NamespaceName });
-        }
+        else { dataType.ComplexType.insert(dataType.ComplexType.begin(), std::string{ Namespace->NamespaceName }); }
     }
 }
+
+ClassDeclNode* ClassAnalyzer::FindClass(DataType const& dataType) const
+{
+    if (dataType.AType != DataType::TypeT::Complex)
+        return nullptr;
+    if (dataType.ArrayArity > 0)
+        return nullptr;
+    for (auto* class_ : Namespace->Members->Classes)
+    {
+        if (dataType.ComplexType.back() == class_->ClassName)
+            return class_;
+    }
+    return nullptr;
+}
+

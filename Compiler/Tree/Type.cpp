@@ -20,12 +20,9 @@ DataType ToDataType(const TypeNode* node)
 {
     if (!node)
         return { DataType::TypeT::Void };
-    if (node->Type == TypeNode::TypeT::StdType) { return ::ToDataType(node->StdType); }
-    if (node->Type == TypeNode::TypeT::StdArrType) { return ::ToDataType(node->StdArrType); }
+    if (node->Type == TypeNode::TypeT::StdType) { return ToDataType(node->StdType); }
+    if (node->Type == TypeNode::TypeT::StdArrType) { return ToDataType(node->StdArrType); }
 
-    if (node->Type == TypeNode::TypeT::AccessExpr && node->Access)
-    {
-        return node->Access->ToDataType();
-    }
+    if (node->Type == TypeNode::TypeT::AccessExpr && node->Access) { return node->Access->ToDataType(); }
     return { DataType::TypeT::Void, {}, true };
 }

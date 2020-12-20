@@ -90,7 +90,9 @@ struct ClassAnalyzer
 
     void Analyze();
 
-    void AnalyzeVarDecl(VarDeclNode* varDecl);
+    void AnalyzeMemberSignatures();
+
+    void AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit = true);
 
     void AnalyzeWhile(WhileNode* while_);
 
@@ -111,8 +113,14 @@ struct ClassAnalyzer
     void AnalyzeClass(ClassDeclNode* value);
 
     [[nodiscard]] ExprNode* AnalyzeExpr(ExprNode* expr);
-
+    void AnalyzeAccessExpr(AccessExpr* expr);
     void AnalyzeSimpleMethodCall(ExprNode* node);
+
+    void AnalyzeDotMethodCall(ExprNode* node);
+
+    void AnalyzeSimpleMethodCall(AccessExpr* node);
+
+    void AnalyzeDotMethodCall(AccessExpr* node);
 
     void CalculateTypesForExpr(ExprNode* node);
 
@@ -121,4 +129,7 @@ struct ClassAnalyzer
     static ExprNode* ReplaceAssignmentsOnArrayElements(ExprNode* node);
 
     void ValidateTypename(DataType & dataType);
+
+    [[nodiscard]] ClassDeclNode* FindClass(DataType const& dataType) const;
 };
+

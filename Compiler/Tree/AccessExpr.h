@@ -3,6 +3,7 @@
 #include "Expr.h"
 
 struct MethodDeclNode;
+struct FieldDeclNode;
 
 struct AccessExpr final : Node
 {
@@ -36,6 +37,7 @@ struct AccessExpr final : Node
     ExprSeqNode* Arguments{};
 
     MethodDeclNode* ActualMethodCall{};
+    FieldDeclNode* ActualField{};
 
     DataType AType{};
 

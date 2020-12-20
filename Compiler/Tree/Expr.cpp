@@ -1,5 +1,6 @@
 #include "Expr.h"
 #include "AccessExpr.h"
+
 ExprNode* ExprNode::FromBinaryExpression(TypeT type, ExprNode* lhs, ExprNode* rhs)
 {
     auto* node = new ExprNode;
@@ -58,6 +59,15 @@ ExprNode* ExprNode::FromCast(const StandardType standardType, ExprNode* expr)
     return node;
 }
 
+ExprNode* ExprNode::FromNew(StandardType standardType, ExprNode* expr)
+{
+    auto* node = new ExprNode;
+    node->Type = TypeT::StandardArrayNew;
+    node->StandardTypeChild = standardType;
+    node->Child = expr;
+    return node;
+}
+
 ExprNode* ExprNode::ToAssignOnArrayElement() const
 {
     const auto isAssignmentOnArrayElement =
@@ -98,7 +108,7 @@ void ExprNode::ApplyToAllChildren(const std::function<ExprNode*(ExprNode*)>& map
 
 void ExprNode::CallForAllChildren(const std::function<void(ExprNode*)>& function) const
 {
-    if(Left)
+    if (Left)
         function(Left);
     if (Right)
         function(Right);

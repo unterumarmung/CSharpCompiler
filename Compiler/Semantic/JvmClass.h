@@ -47,13 +47,10 @@ struct DataType
         return AType == data.AType
                && IsUnknown == data.IsUnknown
                && ArrayArity == data.ArrayArity
-                && ComplexType == data.ComplexType;
+               && ComplexType == data.ComplexType;
     }
 
-    bool operator!=(const DataType& data) const
-    {
-        return !(*this == data);
-    }
+    bool operator!=(const DataType& data) const { return !(*this == data); }
 };
 
 inline std::string ToString(DataType data)
@@ -94,7 +91,6 @@ inline std::string ToString(DataType data)
     }
     case DataType::TypeT::Void:
         return "void";
-
     }
 }
 

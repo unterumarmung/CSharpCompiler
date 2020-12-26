@@ -133,8 +133,9 @@ struct ClassAnalyzer
     ClassFile File;
     std::vector<std::string> Errors;
     NamespaceDeclNode* Namespace;
+    NamespaceDeclSeq* AllNamespaces;
 
-    explicit ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_);
+    explicit ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_, NamespaceDeclSeq* allNamespaces);
 
     void Analyze();
 

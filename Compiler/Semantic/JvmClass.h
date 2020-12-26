@@ -37,6 +37,7 @@ struct DataType
     } AType{};
 
     static const DataType VoidType;
+    static const DataType BoolType;
 
     int ArrayArity = 0;
 

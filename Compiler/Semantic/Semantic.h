@@ -24,12 +24,12 @@ struct Semantic
     {
         for (auto* class_ : namespace_->Members->Classes)
         {
-            ClassAnalyzer analyzer(class_, namespace_);
+            ClassAnalyzer analyzer(class_, namespace_, program->Namespaces);
             analyzer.AnalyzeMemberSignatures();
         }
         for (auto* class_ : namespace_->Members->Classes)
         {
-            ClassAnalyzer analyzer(class_, namespace_);
+            ClassAnalyzer analyzer(class_, namespace_, program->Namespaces);
             analyzer.Analyze();
             Errors.insert(Errors.end(), analyzer.Errors.begin(), analyzer.Errors.end());
         }

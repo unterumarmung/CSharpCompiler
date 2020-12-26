@@ -178,8 +178,10 @@ IdT ConstantTable::FindMethodRef(std::string_view className, std::string_view na
     return foundIter - Constants.begin() + 1;
 }
 
-ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_) : CurrentClass{ node }
+ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_, NamespaceDeclSeq* allNamespaces)
+    : CurrentClass{ node }
   , Namespace{ namespace_ }
+, AllNamespaces{ allNamespaces }
 {
 }
 
@@ -509,10 +511,32 @@ void ClassAnalyzer::AnalyzeDotMethodCall(AccessExpr* expr)
 
 auto IsIndexType(const DataType& data) -> bool { return data.AType == DataType::TypeT::Int && data.ArrayArity == 0; }
 
+
 void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
 {
     if (!node)
         return;
+
+    if (node->Type == ExprNode::TypeT::Cast)
+    {
+        const auto castType = ToDataType(node->StandardTypeChild);
+        CalculateTypesForExpr(node->Child);
+        const auto& exprType = node->Child->AType;
+
+        const auto anyIsBool = castType == DataType::BoolType
+                    || exprType == DataType::BoolType;
+        const auto anyIsVoid = castType == DataType::VoidType
+            || exprType == DataType::VoidType;
+        const auto anyIsUnknown = castType.IsUnknown || exprType.IsUnknown;
+        if (anyIsBool || anyIsVoid || anyIsUnknown)
+        {
+            Errors.push_back("Cannot cast '" + ToString(exprType) + "' to '" + ToString(castType) + "'");
+            node->AType.IsUnknown = true;
+            return;
+        }
+
+    }
+
     if (node->Type == ExprNode::TypeT::AccessExpr)
     {
         node->AType = CalculateTypeForAccessExpr(node->Access);
@@ -792,20 +816,37 @@ void ClassAnalyzer::ValidateTypename(DataType& dataType)
     if (dataType.IsUnknown) { Errors.emplace_back("Cannot create object of unknown type"); }
     else if (dataType.AType == DataType::TypeT::Complex)
     {
-        const auto& allClassesInNamespace = Namespace->Members->Classes;
+        NamespaceDeclNode* namespace_ = Namespace;
+        if (dataType.ComplexType.size() > 1)
+        {
+            const auto foundNamespace = std::find_if(AllNamespaces->GetSeq().begin(), AllNamespaces->GetSeq().end(), [&](NamespaceDeclNode* namespaceDecl)
+                {
+                    return namespaceDecl->NamespaceName == dataType.ComplexType.front();
+                });
+            if (foundNamespace == AllNamespaces->GetSeq().end())
+            {
+                Errors.push_back("No namespace called " + std::string{ dataType.ComplexType.front() });
+                return;
+            }
+            namespace_ = *foundNamespace; 
+        }
+        const auto& allClassesInNamespace = namespace_->Members->Classes;
         const auto foundClass = std::find_if(allClassesInNamespace.begin(), allClassesInNamespace.end(),
                                              [&](ClassDeclNode* class_)
                                              {
-                                                 return class_->ClassName == dataType.ComplexType.front();
+                                                 return class_->ClassName == dataType.ComplexType.back();
                                              });
         if (foundClass == allClassesInNamespace.end())
         {
-            Errors.push_back("No class " + ToString(dataType) + "in namespace " + std::string{
-                                 Namespace->NamespaceName
+            Errors.push_back("No class " + dataType.ComplexType.back() + " in namespace " + std::string{
+                                 namespace_->NamespaceName
                              });
             dataType.IsUnknown = true;
         }
-        else { dataType.ComplexType.insert(dataType.ComplexType.begin(), std::string{ Namespace->NamespaceName }); }
+        else if (dataType.ComplexType.size() == 1)
+        {
+            dataType.ComplexType.insert(dataType.ComplexType.begin(), std::string{ Namespace->NamespaceName });
+        }
     }
 }
 
@@ -815,11 +856,30 @@ ClassDeclNode* ClassAnalyzer::FindClass(DataType const& dataType) const
         return nullptr;
     if (dataType.ArrayArity > 0)
         return nullptr;
-    for (auto* class_ : Namespace->Members->Classes)
+    if (dataType.ComplexType.size() == 1)
     {
-        if (dataType.ComplexType.back() == class_->ClassName)
-            return class_;
+        for (auto* class_ : Namespace->Members->Classes)
+        {
+            if (dataType.ComplexType.back() == class_->ClassName)
+                return class_;
+        }
     }
+    else
+    {
+        const auto& allNamespaces = AllNamespaces->GetSeq();
+        const auto foundNamespace = std::find_if(allNamespaces.begin(), allNamespaces.end(), [&](NamespaceDeclNode const * const namespace_)
+        {
+            return dataType.ComplexType.front() == namespace_->NamespaceName;
+        });
+        if (foundNamespace == allNamespaces.end())
+            return nullptr;
+        for (auto* class_ :  (*foundNamespace)->Members->Classes)
+        {
+            if (dataType.ComplexType.back() == class_->ClassName)
+                return class_;
+        }
+    }
+    
     return nullptr;
 }
 

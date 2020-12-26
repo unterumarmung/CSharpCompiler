@@ -17,15 +17,21 @@ namespace A
         public C arr;
         public void C(int[] array)
         {
-		arr[0].Method().B(array[B(array[0])]);
+            System.Console var;
         }
         public void B(int[] array)
         {
-            int array;
+            B(array) + B(array);
         }
         public int B(int i)
         {
             return 1;
         }
     }
+}
+namespace System
+{
+public class Console
+{
+}
 }

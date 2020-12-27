@@ -27,7 +27,7 @@ struct FieldDeclNode final : Node
 {
     const VisibilityModifier Visibility;
     VarDeclNode* VarDecl;
-    ClassDeclNode* Class;
+    ClassDeclNode* Class{};
 
     FieldDeclNode(const VisibilityModifier visibility, VarDeclNode* const varDecl)
         : Visibility{ visibility }
@@ -73,12 +73,12 @@ struct MethodDeclNode final : Node
     const std::string_view Identifier;
     const MethodArguments* Arguments;
     const StmtSeqNode* Body;
-
+    const bool IsStatic;
     std::vector<VarDeclNode*> Variables{};
     DataType AReturnType{};
     std::vector<MethodArgumentDto> ArgumentDtos{};
 
-    ClassDeclNode* Class;
+    ClassDeclNode* Class{};
 
     VarDeclNode* FindVariableByName(std::string_view var)
     {
@@ -91,16 +91,29 @@ struct MethodDeclNode final : Node
     }
 
     MethodDeclNode(const VisibilityModifier visibility, const TypeNode* const type, const std::string_view identifier,
-                   const MethodArguments* const arguments, const StmtSeqNode* const body)
+        const MethodArguments* const arguments, const StmtSeqNode* const body, const bool isStatic = false)
         : Visibility{ visibility }
       , Type{ type }
       , Identifier{ identifier }
       , Arguments{ arguments }
       , Body{ body }
+      , IsStatic{ isStatic }
     {
     }
 
     [[nodiscard]] std::string_view Name() const noexcept override { return "MethodDecl"; }
+
+    [[nodiscard]] std::string ToDescriptor() const
+    {
+        std::string desc = "(";
+        for (auto* param : Arguments->GetSeq())
+        {
+            desc += param->AType.ToDescriptor();
+        }
+        desc += ")";
+        desc += AReturnType.ToDescriptor();
+        return desc;
+    }
 };
 
 struct ClassMembersNode final : Node

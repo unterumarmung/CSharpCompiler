@@ -303,6 +303,8 @@ visibility_modifier: PUBLIC         { $$ = VisibilityModifier::Public; }
 
 method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'      { $$ = new MethodDeclNode($1, $2, $3, $5, $8); }
            | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'   { $$ = new MethodDeclNode($1, nullptr, $3, $5, $8); }
+           | visibility_modifier STATIC VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'   { $$ = new MethodDeclNode($1, nullptr, $4, $6, $9, /* isStatic = */ true); }
+           | STATIC visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'   { $$ = new MethodDeclNode($2, nullptr, $4, $6, $9, /* isStatic = */ true); }
 ;
 
 field_decl: visibility_modifier var_decl ';'              { $$ = new FieldDeclNode($1, $2); }

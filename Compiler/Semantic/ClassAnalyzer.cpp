@@ -280,13 +280,6 @@ void ClassAnalyzer::AnalyzeReturn(StmtNode* node)
     if (node->Type != StmtNode::TypeT::Return)
         return;
 
-    auto const isLast = CurrentMethod->Body->GetSeq().back() == node;
-    if (!isLast)
-    {
-        Errors.emplace_back("Return statement must me the last in the method body!");
-        return;
-    }
-
     node->Expr = AnalyzeExpr(node->Expr);
 
     if (node->Expr == nullptr && CurrentMethod->AReturnType != DataType::VoidType)
@@ -317,6 +310,18 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 {
     method->Class = CurrentClass;
     CurrentMethod = method;
+
+    if (CurrentMethod->IsStatic)
+    {
+        const auto isMain = CurrentMethod->Identifier == "Main";
+        const auto noArguments = CurrentMethod->ArgumentDtos.empty();
+        if (!isMain || !noArguments)
+        {
+            Errors.emplace_back("Only Main method with no arguments can be static");
+            return;
+        }
+        AllMains.push_back(method);
+    }
 
     const auto& allMethods = CurrentClass->Members->Methods;
     const auto sameMethodsCount = std::count_if(allMethods.begin(), allMethods.end(), [&](auto* otherMethod)
@@ -451,7 +456,7 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(AccessExpr* expr)
     const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
     {
         return methodName == method->Identifier && callTypes ==
-               ToTypes(method->ArgumentDtos);
+               ToTypes(method->ArgumentDtos) && !method->IsStatic;
     });
 
     if (foundMethod == allMethods.end())
@@ -496,7 +501,7 @@ void ClassAnalyzer::AnalyzeDotMethodCall(AccessExpr* expr)
     const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
     {
         return methodName == method->Identifier && callTypes ==
-               ToTypes(method->ArgumentDtos);
+               ToTypes(method->ArgumentDtos) && !method->IsStatic;
     });
 
     if (foundMethod == allMethods.end())

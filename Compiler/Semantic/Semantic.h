@@ -7,7 +7,8 @@ struct Semantic
 {
     // ReSharper disable once CppInconsistentNaming
     Program* program;
-    std::vector<Class> Classes;
+    std::vector<Class> Classes{};
+    std::vector<MethodDeclNode*> AllMains{};
 
     explicit Semantic(Program* program) : program{ program }
     {
@@ -18,7 +19,11 @@ struct Semantic
 
     std::vector<std::string> Errors;
 
-    void Analyze() { for (const auto& _namespace : program->Namespaces->GetSeq()) { AnalyzeNamespace(_namespace); } }
+    void Analyze()
+    {
+        for (const auto& _namespace : program->Namespaces->GetSeq()) { AnalyzeNamespace(_namespace); }
+        if (AllMains.size() > 1) { Errors.push_back("There must be only one main in the program"); }
+    }
 
     void AnalyzeNamespace(NamespaceDeclNode* namespace_)
     {
@@ -32,6 +37,7 @@ struct Semantic
             ClassAnalyzer analyzer(class_, namespace_, program->Namespaces);
             analyzer.Analyze();
             Errors.insert(Errors.end(), analyzer.Errors.begin(), analyzer.Errors.end());
+            AllMains.insert(AllMains.end(), analyzer.AllMains.begin(), analyzer.AllMains.end());
         }
     } // TODO enums
 };

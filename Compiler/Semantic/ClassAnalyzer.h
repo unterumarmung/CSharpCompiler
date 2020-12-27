@@ -110,6 +110,11 @@ struct JvmField
     AccessFlags AccessFlags;
 };
 
+struct JvmMethod
+{
+    
+};
+
 struct ClassFile
 {
     static constexpr uint32_t MagicConstant = 0xCAFEBABE;
@@ -130,10 +135,11 @@ struct ClassAnalyzer
 {
     MethodDeclNode* CurrentMethod = nullptr;
     ClassDeclNode* CurrentClass = nullptr;
-    ClassFile File;
-    std::vector<std::string> Errors;
-    NamespaceDeclNode* Namespace;
-    NamespaceDeclSeq* AllNamespaces;
+    ClassFile File{};
+    std::vector<std::string> Errors{};
+    NamespaceDeclNode* Namespace{};
+    NamespaceDeclSeq* AllNamespaces{};
+    std::vector<MethodDeclNode*> AllMains{};
 
     explicit ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_, NamespaceDeclSeq* allNamespaces);
 

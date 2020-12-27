@@ -4,6 +4,10 @@ namespace A
 {
     public class C
     {
+        public static void Other()
+        {
+
+        }
         public int Foo;
         public B Bar;
         public B Method()
@@ -23,6 +27,12 @@ namespace A
         {
             B(array) + B(array);
         }
+
+        static public void Main()
+        {
+
+        }
+
         public int B(int i)
         {
             return 1;

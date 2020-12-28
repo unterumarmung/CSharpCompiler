@@ -2,46 +2,11 @@ using System;
 using System.Collections.Generic;
 namespace A
 {
-    public class C
-    {
-        public static void Other()
-        {
-
-        }
-        public int Foo;
-        public B Bar;
-        public B Method()
-        {
-          return Bar;
-        }
-    }
     public class B
     {
-        public C[] arr;
-        public C arr;
-        public void C(int[] array)
-        {
-            System.Console var;
-        }
-        public void B(int[] array)
-        {
-            B(array) + B(array);
-        }
-
         static public void Main()
         {
 
         }
-
-        public int B(int i)
-        {
-            return 1;
-        }
     }
-}
-namespace System
-{
-public class Console
-{
-}
 }

@@ -83,13 +83,27 @@ struct DataType
                 value += part;
                 value += '/';
             }
-            value.pop_back();
-            value += ";";
+            value.back() = ';';
             return value;
         }
         case TypeT::Void:
             return "V";
         }
+    }
+
+    [[nodiscard]] std::string ToClassName() const
+    {
+        if (AType != TypeT::Complex)
+            return "";
+
+        std::string value = "";
+        for (auto const& part : ComplexType)
+        {
+            value += part;
+            value += '/';
+        }
+        value.pop_back();
+        return value;
     }
 };
 

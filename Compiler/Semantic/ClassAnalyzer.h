@@ -2,16 +2,35 @@
 #include <string>
 #include <cstdint>
 #include <vector>
-#include <algorithm>
 #include "../Tree/Program.h"
 
-using IdT = unsigned long long;
+using IdT = uint16_t;
 using IntT = std::int32_t;
 using FloatT = double;
+using Bytes = std::vector<unsigned char>;
+
+inline void append(Bytes& bytes, Bytes::value_type value) { bytes.push_back(value); }
+
+inline void append(Bytes& bytes, Bytes const& value) { bytes.insert(bytes.end(), value.begin(), value.end()); }
+
+inline void append(Bytes& bytes, std::string_view value) { bytes.insert(bytes.end(), value.begin(), value.end()); }
+
+const inline DataType JAVA_BASE_OBJECT = []
+{
+    DataType type{ DataType::TypeT::Complex };
+    type.ComplexType = { "java", "lang", "Object" };
+    return type;
+}();
+
+Bytes ToBytes(uint32_t n);
+
+Bytes ToBytes(uint16_t n);
+
+Bytes ToBytes(IntT n);
 
 struct Constant
 {
-    enum class TypeT
+    enum class TypeT : uint8_t
     {
         Utf8 = 1,
         Integer = 3,
@@ -19,8 +38,8 @@ struct Constant
         String = 8,
         NameAndType = 12,
         Class = 7,
-        MethodRef = 9,
-        FieldRef = 10
+        MethodRef = 10,
+        FieldRef = 9
     } Type{};
 
     std::string Utf8{};
@@ -58,6 +77,8 @@ struct Constant
     static Constant CreateMethodRef(IdT natId, IdT classId);
 };
 
+Bytes ToBytes(Constant const& constant);
+
 struct ConstantTable
 {
     std::vector<Constant> Constants;
@@ -79,6 +100,8 @@ struct ConstantTable
 };
 
 
+Bytes ToBytes(const ConstantTable& constants);
+
 enum class AccessFlags : uint16_t
 {
     Public = 0x0001,
@@ -89,8 +112,19 @@ enum class AccessFlags : uint16_t
     Super = 0x0020
 };
 
-inline AccessFlags ToAccessFlags(VisibilityModifier visibility)
+inline AccessFlags operator|(AccessFlags lhs, AccessFlags rhs)
 {
+    using Type = std::underlying_type_t<AccessFlags>;
+    const auto lhs2 = static_cast<Type>(lhs);
+    const auto rhs2 = static_cast<Type>(rhs);
+    return static_cast<AccessFlags>(lhs2 | rhs2);
+}
+
+inline AccessFlags ToAccessFlags(VisibilityModifier visibility, const bool isStatic = false)
+{
+    if (isStatic)
+        return AccessFlags::Static | ToAccessFlags(visibility);
+
     switch (visibility)
     {
     case VisibilityModifier::Public:
@@ -100,6 +134,7 @@ inline AccessFlags ToAccessFlags(VisibilityModifier visibility)
     case VisibilityModifier::Private:
         return AccessFlags::Private;
     }
+
     return {};
 }
 
@@ -110,9 +145,14 @@ struct JvmField
     AccessFlags AccessFlags;
 };
 
+Bytes ToBytes(JvmField field);
+
 struct JvmMethod
 {
-    
+    IdT NameId;
+    IdT TypeId;
+    AccessFlags AccessFlags;
+    MethodDeclNode* ActualMethod;
 };
 
 struct ClassFile
@@ -128,8 +168,10 @@ struct ClassFile
 
     ConstantTable Constants;
     std::vector<JvmField> Fields;
+    std::vector<JvmMethod> Methods;
 };
 
+Bytes ToBytes(JvmMethod method, ClassFile& classFile);
 
 struct ClassAnalyzer
 {
@@ -192,4 +234,12 @@ struct ClassAnalyzer
     [[nodiscard]] ClassDeclNode* FindClass(DataType const& dataType) const;
 
     void FillTables(FieldDeclNode* field);
+
+    void FillTables(MethodDeclNode* method);
+
+    void FillTables();
+
+    void Generate();
+
+    Bytes ToBytes();
 };

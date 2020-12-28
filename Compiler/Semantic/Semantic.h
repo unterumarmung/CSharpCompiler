@@ -40,4 +40,20 @@ struct Semantic
             AllMains.insert(AllMains.end(), analyzer.AllMains.begin(), analyzer.AllMains.end());
         }
     } // TODO enums
+
+    void Generate()
+    {
+        if (Errors.empty())
+        {
+            for (auto* namespace_ : program->Namespaces->GetSeq())
+            {
+                for (auto* class_ : namespace_->Members->Classes)
+                {
+                    ClassAnalyzer analyzer(class_, namespace_, program->Namespaces);
+                    analyzer.FillTables();
+                    analyzer.Generate();
+                }
+            }
+        }
+    }
 };

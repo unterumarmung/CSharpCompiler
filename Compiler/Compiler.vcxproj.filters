@@ -108,5 +108,8 @@
     <ClInclude Include="Semantic\ClassAnalyzer.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="Semantic\Commands.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

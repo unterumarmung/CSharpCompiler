@@ -1,7 +1,8 @@
+// ReSharper disable CppCStyleCast
 #include "ClassAnalyzer.h"
-
 #include <iterator>
-
+#include <algorithm>
+#include <iostream>
 using namespace std::string_literals;
 
 bool operator==(const Constant& lhs, const Constant& rhs)
@@ -17,7 +18,7 @@ bool operator==(const Constant& lhs, const Constant& rhs)
         return lhs.Float == rhs.Float;
     case Constant::TypeT::String:
     case Constant::TypeT::Class:
-        return lhs.Utf8Id == rhs.Utf8Id;
+        return lhs.ClassNameId == rhs.ClassNameId;
     case Constant::TypeT::NameAndType:
         return lhs.NameId == rhs.NameId && lhs.TypeId == rhs.TypeId;
     case Constant::TypeT::MethodRef:
@@ -178,11 +179,25 @@ IdT ConstantTable::FindMethodRef(std::string_view className, std::string_view na
     return foundIter - Constants.begin() + 1;
 }
 
+
 ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_, NamespaceDeclSeq* allNamespaces)
     : CurrentClass{ node }
   , Namespace{ namespace_ }
-, AllNamespaces{ allNamespaces }
+  , AllNamespaces{ allNamespaces }
 {
+    const auto hasConstructor = std::any_of(CurrentClass->Members->Methods.begin(),
+                                            CurrentClass->Members->Methods.end(), [](auto* method)
+                                            {
+                                                return method->IsConstructor;
+                                            });
+    if (!hasConstructor)
+        CurrentClass->Members->Add(new MethodDeclNode{
+                                       VisibilityModifier::Public,
+                                       nullptr,
+                                       "<init>",
+                                       MethodArguments::MakeEmpty(),
+                                       StmtSeqNode::MakeEmpty()
+                                   });
 }
 
 void ClassAnalyzer::Analyze() { AnalyzeClass(CurrentClass); }
@@ -217,12 +232,13 @@ void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
     {
         auto const& methodVariables = CurrentMethod->Variables;
         auto const foundVariable = std::find_if(methodVariables.begin(), methodVariables.end(), [&](VarDeclNode* var)
-            {
-                return var->Identifier == varDecl->Identifier;
-            });
+        {
+            return var->Identifier == varDecl->Identifier;
+        });
         if (foundVariable != methodVariables.end())
         {
-            Errors.push_back("Variable with name '" + std::string{ varDecl->Identifier } + "' is already defined in method " + std::string{ CurrentMethod->Identifier });
+            Errors.push_back("Variable with name '" + std::string{ varDecl->Identifier } +
+                             "' is already defined in method " + std::string{ CurrentMethod->Identifier });
             return;
         }
         CurrentMethod->Variables.push_back(varDecl);
@@ -284,7 +300,9 @@ void ClassAnalyzer::AnalyzeReturn(StmtNode* node)
 
     if (node->Expr == nullptr && CurrentMethod->AReturnType != DataType::VoidType)
     {
-        Errors.emplace_back("Cannot return empty expression in non-void method " + std::string{CurrentMethod->Identifier});
+        Errors.emplace_back("Cannot return empty expression in non-void method " + std::string{
+                                CurrentMethod->Identifier
+                            });
     }
     if (node->Expr && node->Expr->AType != CurrentMethod->AReturnType)
     {
@@ -321,6 +339,7 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
             return;
         }
         AllMains.push_back(method);
+        CurrentMethod->Identifier = "main";
     }
 
     const auto& allMethods = CurrentClass->Members->Methods;
@@ -342,7 +361,9 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 
     if (method->Body->GetSeq().empty() && method->AReturnType != DataType::VoidType)
     {
-        Errors.push_back("There must be return statement in non-void method with name " + std::string{method->Identifier});
+        Errors.push_back("There must be return statement in non-void method with name " + std::string{
+                             method->Identifier
+                         });
         CurrentMethod = nullptr;
         return;
     }
@@ -352,7 +373,7 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 
     for (auto* stmt : method->Body->GetSeq()) { AnalyzeStmt(stmt); }
 
-    if (!method->Body->GetSeq().empty() 
+    if (!method->Body->GetSeq().empty()
         && method->Body->GetSeq().back()->Type != StmtNode::TypeT::Return
         && method->AReturnType != DataType::VoidType)
     {
@@ -374,13 +395,13 @@ void ClassAnalyzer::AnalyzeField(FieldDeclNode* field)
     if (fieldNameCount > 1)
     {
         Errors.push_back("Field with name \"" + std::string{ field->VarDecl->Identifier } + "\" already defined!");
-        return;
     }
-    FillTables(field);
 }
 
 void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
 {
+    value->Namespace = this->Namespace;
+
     for (auto* field : value->Members->Fields) { AnalyzeField(field); }
     for (auto* method : value->Members->Methods)
     {
@@ -529,9 +550,9 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         const auto& exprType = node->Child->AType;
 
         const auto anyIsBool = castType == DataType::BoolType
-                    || exprType == DataType::BoolType;
+                               || exprType == DataType::BoolType;
         const auto anyIsVoid = castType == DataType::VoidType
-            || exprType == DataType::VoidType;
+                               || exprType == DataType::VoidType;
         const auto anyIsUnknown = castType.IsUnknown || exprType.IsUnknown;
         if (anyIsBool || anyIsVoid || anyIsUnknown)
         {
@@ -539,7 +560,6 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
             node->AType.IsUnknown = true;
             return;
         }
-
     }
 
     if (node->Type == ExprNode::TypeT::AccessExpr)
@@ -824,16 +844,18 @@ void ClassAnalyzer::ValidateTypename(DataType& dataType)
         NamespaceDeclNode* namespace_ = Namespace;
         if (dataType.ComplexType.size() > 1)
         {
-            const auto foundNamespace = std::find_if(AllNamespaces->GetSeq().begin(), AllNamespaces->GetSeq().end(), [&](NamespaceDeclNode* namespaceDecl)
-                {
-                    return namespaceDecl->NamespaceName == dataType.ComplexType.front();
-                });
+            const auto foundNamespace = std::find_if(AllNamespaces->GetSeq().begin(), AllNamespaces->GetSeq().end(),
+                                                     [&](NamespaceDeclNode* namespaceDecl)
+                                                     {
+                                                         return namespaceDecl->NamespaceName == dataType.ComplexType.
+                                                                front();
+                                                     });
             if (foundNamespace == AllNamespaces->GetSeq().end())
             {
                 Errors.push_back("No namespace called " + std::string{ dataType.ComplexType.front() });
                 return;
             }
-            namespace_ = *foundNamespace; 
+            namespace_ = *foundNamespace;
         }
         const auto& allClassesInNamespace = namespace_->Members->Classes;
         const auto foundClass = std::find_if(allClassesInNamespace.begin(), allClassesInNamespace.end(),
@@ -872,19 +894,20 @@ ClassDeclNode* ClassAnalyzer::FindClass(DataType const& dataType) const
     else
     {
         const auto& allNamespaces = AllNamespaces->GetSeq();
-        const auto foundNamespace = std::find_if(allNamespaces.begin(), allNamespaces.end(), [&](NamespaceDeclNode const * const namespace_)
-        {
-            return dataType.ComplexType.front() == namespace_->NamespaceName;
-        });
+        const auto foundNamespace = std::find_if(allNamespaces.begin(), allNamespaces.end(),
+                                                 [&](NamespaceDeclNode const* const namespace_)
+                                                 {
+                                                     return dataType.ComplexType.front() == namespace_->NamespaceName;
+                                                 });
         if (foundNamespace == allNamespaces.end())
             return nullptr;
-        for (auto* class_ :  (*foundNamespace)->Members->Classes)
+        for (auto* class_ : (*foundNamespace)->Members->Classes)
         {
             if (dataType.ComplexType.back() == class_->ClassName)
                 return class_;
         }
     }
-    
+
     return nullptr;
 }
 
@@ -894,4 +917,207 @@ void ClassAnalyzer::FillTables(FieldDeclNode* field)
     const auto typeId = File.Constants.FindUtf8(field->VarDecl->AType.ToDescriptor());
     const auto accessFlags = ToAccessFlags(field->Visibility);
     File.Fields.push_back({ nameId, typeId, accessFlags });
+}
+
+void ClassAnalyzer::FillTables(MethodDeclNode* method)
+{
+    const auto nameId = File.Constants.FindUtf8(method->Identifier);
+    const auto typeId = File.Constants.FindUtf8(method->ToDescriptor());
+    const auto accessFlags = ToAccessFlags(method->Visibility, method->IsStatic);
+    File.Methods.push_back({ nameId, typeId, accessFlags, method });
+}
+
+void ClassAnalyzer::FillTables()
+{
+    for (auto* field : CurrentClass->Members->Fields) { FillTables(field); }
+    for (auto* method : CurrentClass->Members->Methods) { FillTables(method); }
+}
+
+Bytes ToBytes(const ConstantTable& constants)
+{
+    auto bytes = ToBytes((uint16_t)(constants.Constants.size() + 1));
+    for (auto const& constant : constants.Constants) { append(bytes, ToBytes(constant)); }
+    return bytes;
+}
+
+Bytes ToBytes(JvmField field)
+{
+    Bytes bytes;
+    append(bytes, ToBytes(static_cast<uint16_t>(field.AccessFlags)));
+    append(bytes, ToBytes(field.NameId));
+    append(bytes, ToBytes(field.TypeId));
+    constexpr auto attributesCount = (uint16_t)0;
+    append(bytes, ToBytes(attributesCount));
+    return bytes;
+}
+
+#include "Commands.h"
+
+Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
+{
+    Bytes bytes;
+
+    constexpr auto stackSize = (uint16_t)2000;
+    append(bytes, ToBytes(stackSize));
+
+    const uint16_t localVariablesCount = method->IsConstructor ? 1 : 0;
+
+    append(bytes, ToBytes(localVariablesCount));
+
+    Bytes codeBytes;
+
+    if (method->IsConstructor)
+    {
+        append(codeBytes, (uint8_t)Command::aload_0);
+        append(codeBytes, (uint8_t)Command::invokespecial);
+        const auto javaBaseObjectConstructor = classFile.Constants.FindMethodRef(
+             JAVA_BASE_OBJECT.ToClassName(),
+             "<init>",
+             "()V"
+            );
+        append(codeBytes, ToBytes(javaBaseObjectConstructor));
+    }
+
+    append(codeBytes, (uint8_t)Command::return_);
+
+    append(bytes, (uint32_t)codeBytes.size());
+    append(bytes, codeBytes);
+
+    constexpr auto exceptionTableSize = (uint16_t)0;
+    constexpr auto attributesTableSize = (uint16_t)0;
+
+    append(bytes, ToBytes(exceptionTableSize));
+    append(bytes, ToBytes(attributesTableSize));
+
+    return bytes;
+}
+
+Bytes ToBytes(JvmMethod method, ClassFile& classFile)
+{
+    Bytes bytes;
+    append(bytes, ToBytes(static_cast<uint16_t>(method.AccessFlags)));
+    append(bytes, ToBytes(method.NameId));
+    append(bytes, ToBytes(method.TypeId));
+    constexpr auto attributesCount = (uint16_t)1; // The only attribute is Code
+    append(bytes, ToBytes(attributesCount));
+    append(bytes, ToBytes(classFile.Constants.FindUtf8("Code")));
+    const auto codeBytes = ToBytes(method.ActualMethod, classFile);
+    const auto codeBytesLength = ToBytes((uint32_t)codeBytes.size());
+    append(bytes, codeBytesLength);
+    append(bytes, codeBytes);
+    return bytes;
+}
+
+#include <filesystem>
+#include <fstream>
+
+void ClassAnalyzer::Generate()
+{
+    using namespace std::filesystem;
+    const auto filename = std::string{ CurrentClass->ClassName } + ".class";
+    const auto filepath = current_path() / "Output" / filename;
+    create_directory(current_path() / "Output");
+    std::fstream out{ filepath, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc };
+    out << (char)0xCA << (char)0xFE << (char)0xBA << (char)0xBE;
+    const auto minorVersion = ::ToBytes(ClassFile::MinorVersion);
+    out.write((char*)minorVersion.data(), minorVersion.size());
+    const auto majorVersion = ::ToBytes(ClassFile::MajorVersion);
+    out.write((char*)majorVersion.data(), majorVersion.size());
+    auto const classBytes = this->ToBytes();
+    auto const constantBytes = ::ToBytes(File.Constants);
+    out.write((char*)constantBytes.data(), constantBytes.size());
+
+    auto position = out.tellp();
+
+    out.write((char*)classBytes.data(), classBytes.size());
+
+    const auto classAttributesCount = ::ToBytes((uint16_t)0);
+    out.write((char*)classAttributesCount.data(), classAttributesCount.size());
+}
+
+Bytes ClassAnalyzer::ToBytes()
+{
+    Bytes bytes;
+    const auto classConstantId = File.Constants.FindClass(CurrentClass->ClassName);
+    const auto superClassId = File.Constants.FindClass(JAVA_BASE_OBJECT.ToClassName());
+    const auto accessFlags = AccessFlags::Super | AccessFlags::Public;
+    append(bytes, ::ToBytes((uint16_t)accessFlags));
+    append(bytes, ::ToBytes(classConstantId));
+    append(bytes, ::ToBytes(superClassId));
+
+    constexpr auto interfacesCount = (uint16_t)0;
+    append(bytes, ::ToBytes(interfacesCount));
+
+    append(bytes, ::ToBytes((uint16_t)File.Fields.size()));
+    for (auto field : File.Fields) { append(bytes, ::ToBytes(field)); }
+    append(bytes, ::ToBytes((uint16_t)File.Methods.size()));
+    for (auto method : File.Methods) { append(bytes, ::ToBytes(method, File)); }
+    return bytes;
+}
+
+// #include <WinSock2.h>
+// #pragma comment(lib, "Ws2_32.lib")
+Bytes ToBytes(const uint32_t n)
+{
+    const auto netNum = n;
+    Bytes bytes(sizeof n, '\0');
+    for (int i = 0; i < bytes.size(); i++)
+        bytes[bytes.size() - 1 - i] = (netNum >> (i * 8));
+    return bytes;
+}
+
+Bytes ToBytes(const uint16_t n)
+{
+    const auto netNum = n;
+    Bytes bytes(sizeof n, '\0');
+    for (int i = 0; i < bytes.size(); i++)
+        bytes[bytes.size() - 1 - i] = (netNum >> (i * 8));
+    return bytes;
+}
+
+Bytes ToBytes(const IntT n)
+{
+    const auto netNum = n;
+    Bytes bytes(sizeof n, '\0');
+    for (int i = 0; i < bytes.size(); i++)
+        bytes[bytes.size() - 1 - i] = (netNum >> (i * 8));
+    return bytes;
+}
+
+Bytes ToBytes(Constant const& constant)
+{
+    Bytes bytes;
+    append(bytes, static_cast<uint8_t>(constant.Type));
+    switch (constant.Type)
+    {
+    case Constant::TypeT::Utf8:
+        append(bytes, ToBytes((uint16_t)constant.Utf8.size()));
+        append(bytes, constant.Utf8);
+        break;
+    case Constant::TypeT::Integer:
+        append(bytes, ToBytes(constant.Integer));
+        break;
+    case Constant::TypeT::Float:
+        throw std::runtime_error{ "Float is not supported" };
+    case Constant::TypeT::String:
+        append(bytes, ToBytes(constant.Utf8Id));
+        break;
+    case Constant::TypeT::NameAndType:
+        append(bytes, ToBytes(constant.NameId));
+        append(bytes, ToBytes(constant.TypeId));
+        break;
+    case Constant::TypeT::Class:
+        append(bytes, ToBytes(constant.ClassNameId));
+        break;
+    case Constant::TypeT::MethodRef:
+        append(bytes, ToBytes(constant.ClassId));
+        append(bytes, ToBytes(constant.NameAndTypeId));
+        break;
+    case Constant::TypeT::FieldRef:
+        append(bytes, ToBytes(constant.ClassId));
+        append(bytes, ToBytes(constant.NameAndTypeId));
+        break;
+    default: ;
+    }
+    return bytes;
 }

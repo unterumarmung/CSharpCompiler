@@ -70,10 +70,11 @@ struct MethodDeclNode final : Node
 {
     const VisibilityModifier Visibility;
     const TypeNode* Type;
-    const std::string_view Identifier;
+    std::string_view Identifier;
     const MethodArguments* Arguments;
     const StmtSeqNode* Body;
     const bool IsStatic;
+    const bool IsConstructor;
     std::vector<VarDeclNode*> Variables{};
     DataType AReturnType{};
     std::vector<MethodArgumentDto> ArgumentDtos{};
@@ -91,13 +92,14 @@ struct MethodDeclNode final : Node
     }
 
     MethodDeclNode(const VisibilityModifier visibility, const TypeNode* const type, const std::string_view identifier,
-        const MethodArguments* const arguments, const StmtSeqNode* const body, const bool isStatic = false)
+                   const MethodArguments* const arguments, const StmtSeqNode* const body, const bool isStatic = false)
         : Visibility{ visibility }
       , Type{ type }
       , Identifier{ identifier }
       , Arguments{ arguments }
       , Body{ body }
       , IsStatic{ isStatic }
+      , IsConstructor{ Identifier == "<init>" }
     {
     }
 
@@ -106,10 +108,7 @@ struct MethodDeclNode final : Node
     [[nodiscard]] std::string ToDescriptor() const
     {
         std::string desc = "(";
-        for (auto* param : Arguments->GetSeq())
-        {
-            desc += param->AType.ToDescriptor();
-        }
+        for (auto* param : Arguments->GetSeq()) { desc += param->AType.ToDescriptor(); }
         desc += ")";
         desc += AReturnType.ToDescriptor();
         return desc;
@@ -129,13 +128,18 @@ struct ClassMembersNode final : Node
     [[nodiscard]] std::string_view Name() const noexcept override { return "ClassMembers"; }
 };
 
+struct NamespaceDeclNode;
+
 struct ClassDeclNode final : Node
 {
     std::string_view ClassName;
     IdentifierList* ParentType;
     ClassMembersNode* Members;
+    NamespaceDeclNode* Namespace{};
 
-    FieldDeclNode* FindFieldByName(std::string_view name)
+    [[nodiscard]] DataType ToDataType() const;
+
+    [[nodiscard]] FieldDeclNode* FindFieldByName(std::string_view name) const
     {
         for (auto* field : Members->Fields)
         {
@@ -144,6 +148,7 @@ struct ClassDeclNode final : Node
         }
         return nullptr;
     }
+
 
     ClassDeclNode(const std::string_view className, IdentifierList* parentType, ClassMembersNode* const members)
         : ClassName{ className }

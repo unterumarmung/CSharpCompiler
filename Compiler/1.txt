@@ -6,7 +6,7 @@ namespace A
     {
         static public void Main()
         {
-
+		100000 + 100010 + 1 / 46 * 250000;
         }
     }
 }

@@ -1,5 +1,6 @@
 // ReSharper disable CppCStyleCast
 #include "ClassAnalyzer.h"
+#include "Commands.h"
 #include <iterator>
 #include <algorithm>
 #include <iostream>
@@ -955,7 +956,130 @@ Bytes ToBytes(JvmField field)
     return bytes;
 }
 
-#include "Commands.h"
+Bytes ToBytes(ExprNode* expr, ClassFile& file);
+
+Bytes ToBytes(AccessExpr* expr, ClassFile& file)
+{
+    switch (expr->Type) {
+    case AccessExpr::TypeT::Expr:
+        return ToBytes(expr->Child, file);
+    case AccessExpr::TypeT::ArrayElementExpr:
+        break;
+    case AccessExpr::TypeT::ComplexArrayType:
+        break;
+    case AccessExpr::TypeT::Integer:
+    {
+        Bytes bytes;
+        const auto intVal = expr->Integer;
+        if (intVal >= -32768 && intVal <= 32767)
+        {
+            const auto intBytes = ToBytes((IntT)intVal);
+            bytes.push_back((uint8_t)Command::sipush);
+            bytes.push_back(intBytes[2]);
+            bytes.push_back(intBytes[3]);
+        }
+        else
+        {
+            const auto constantId = file.Constants.FindInt(expr->Integer);
+            const auto constantIdBytes = ToBytes(constantId);
+            append(bytes, (uint8_t)Command::ldc_w);
+            append(bytes, constantIdBytes);
+        }
+        return bytes;
+    }
+    case AccessExpr::TypeT::Float:
+        break;
+    case AccessExpr::TypeT::String:
+        break;
+    case AccessExpr::TypeT::Char:
+        break;
+    case AccessExpr::TypeT::Bool:
+        break;
+    case AccessExpr::TypeT::Identifier:
+        break;
+    case AccessExpr::TypeT::SimpleMethodCall:
+        break;
+    case AccessExpr::TypeT::Dot:
+        break;
+    case AccessExpr::TypeT::DotMethodCall:
+        break;
+    default: ;
+    }
+    return {};
+}
+
+Bytes ToBytes(ExprNode* expr, ClassFile& file)
+{
+    if (IsBinary(expr->Type))
+    {
+        Bytes bytes;
+        const auto leftBytes = ToBytes(expr->Left, file);
+        const auto rightBytes = ToBytes(expr->Right, file);
+        append(bytes, leftBytes);
+        append(bytes, rightBytes);
+        if (expr->AType != DataType::IntType)
+        {
+            throw std::runtime_error{ "Only ints are supported" };
+        }
+        switch (expr->Type)  // NOLINT(clang-diagnostic-switch-enum)
+        {
+        case ExprNode::TypeT::BinPlus:
+            append(bytes, (uint8_t)Command::iadd);
+            break;
+        case ExprNode::TypeT::BinMinus:
+            append(bytes, (uint8_t)Command::isub);
+            break;
+        case ExprNode::TypeT::Multiply:
+            append(bytes, (uint8_t)Command::imul);
+            break;
+        case ExprNode::TypeT::Divide:
+            append(bytes, (uint8_t)Command::idiv);
+            break;
+        default: throw std::runtime_error{ "Not supported" };
+        }
+        return bytes;
+    }
+
+    if (expr->Type == ExprNode::TypeT::AccessExpr)
+    {
+        return ToBytes(expr->Access, file);
+    }
+
+
+    return {};
+}
+
+Bytes ToBytes(StmtNode* stmt, ClassFile& file)
+{
+    Bytes bytes;
+
+    switch (stmt->Type) {
+    case StmtNode::TypeT::Empty:
+        return bytes;
+    case StmtNode::TypeT::VarDecl:
+        break;
+    case StmtNode::TypeT::While:
+        break;
+    case StmtNode::TypeT::DoWhile:
+        break;
+    case StmtNode::TypeT::For:
+        break;
+    case StmtNode::TypeT::Foreach:
+        break;
+    case StmtNode::TypeT::BlockStmt:
+        break;
+    case StmtNode::TypeT::IfStmt:
+        break;
+    case StmtNode::TypeT::Return:
+        break;
+    case StmtNode::TypeT::ExprStmt:
+        return ToBytes(stmt->Expr, file);
+    default: ;
+    }
+    return {};
+}
+
+
 
 Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
 {
@@ -980,6 +1104,11 @@ Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
              "()V"
             );
         append(codeBytes, ToBytes(javaBaseObjectConstructor));
+    }
+
+    for (auto* stmt : method->Body->GetSeq())
+    {
+        append(codeBytes, ToBytes(stmt, classFile));
     }
 
     append(codeBytes, (uint8_t)Command::return_);
@@ -1019,8 +1148,8 @@ void ClassAnalyzer::Generate()
 {
     using namespace std::filesystem;
     const auto filename = std::string{ CurrentClass->ClassName } + ".class";
-    const auto filepath = current_path() / "Output" / filename;
-    create_directory(current_path() / "Output");
+    auto filepath = current_path() / "Output" / Namespace->NamespaceName / filename;
+    create_directory(current_path() / "Output" / Namespace->NamespaceName);
     std::fstream out{ filepath, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc };
     out << (char)0xCA << (char)0xFE << (char)0xBA << (char)0xBE;
     const auto minorVersion = ::ToBytes(ClassFile::MinorVersion);
@@ -1042,7 +1171,7 @@ void ClassAnalyzer::Generate()
 Bytes ClassAnalyzer::ToBytes()
 {
     Bytes bytes;
-    const auto classConstantId = File.Constants.FindClass(CurrentClass->ClassName);
+    const auto classConstantId = File.Constants.FindClass(CurrentClass->ToDataType().ToClassName());
     const auto superClassId = File.Constants.FindClass(JAVA_BASE_OBJECT.ToClassName());
     const auto accessFlags = AccessFlags::Super | AccessFlags::Public;
     append(bytes, ::ToBytes((uint16_t)accessFlags));

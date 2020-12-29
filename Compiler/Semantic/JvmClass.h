@@ -38,6 +38,7 @@ struct DataType
 
     static const DataType VoidType;
     static const DataType BoolType;
+    static const DataType IntType;
 
     int ArrayArity = 0;
 

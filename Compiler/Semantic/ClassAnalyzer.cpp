@@ -922,7 +922,11 @@ void ClassAnalyzer::FillTables(FieldDeclNode* field)
 void ClassAnalyzer::FillTables(MethodDeclNode* method)
 {
     const auto nameId = File.Constants.FindUtf8(method->Identifier);
-    const auto typeId = File.Constants.FindUtf8(method->ToDescriptor());
+    const auto methodDescriptor = method->Identifier == "main" && method->IsStatic
+        ?  "([Ljava/lang/String;)V"
+        : method->ToDescriptor();
+
+    const auto typeId = File.Constants.FindUtf8(methodDescriptor);
     const auto accessFlags = ToAccessFlags(method->Visibility, method->IsStatic);
     File.Methods.push_back({ nameId, typeId, accessFlags, method });
 }
@@ -957,10 +961,10 @@ Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
 {
     Bytes bytes;
 
-    constexpr auto stackSize = (uint16_t)2000;
+    constexpr auto stackSize = (uint16_t)1000;
     append(bytes, ToBytes(stackSize));
 
-    const uint16_t localVariablesCount = method->IsConstructor ? 1 : 0;
+    const uint16_t localVariablesCount = 1;
 
     append(bytes, ToBytes(localVariablesCount));
 
@@ -980,7 +984,7 @@ Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
 
     append(codeBytes, (uint8_t)Command::return_);
 
-    append(bytes, (uint32_t)codeBytes.size());
+    append(bytes, ToBytes((uint32_t)codeBytes.size()));
     append(bytes, codeBytes);
 
     constexpr auto exceptionTableSize = (uint16_t)0;
@@ -1002,7 +1006,7 @@ Bytes ToBytes(JvmMethod method, ClassFile& classFile)
     append(bytes, ToBytes(attributesCount));
     append(bytes, ToBytes(classFile.Constants.FindUtf8("Code")));
     const auto codeBytes = ToBytes(method.ActualMethod, classFile);
-    const auto codeBytesLength = ToBytes((uint32_t)codeBytes.size());
+    auto codeBytesLength = ToBytes((uint32_t)codeBytes.size());
     append(bytes, codeBytesLength);
     append(bytes, codeBytes);
     return bytes;
@@ -1050,6 +1054,11 @@ Bytes ClassAnalyzer::ToBytes()
 
     append(bytes, ::ToBytes((uint16_t)File.Fields.size()));
     for (auto field : File.Fields) { append(bytes, ::ToBytes(field)); }
+
+    std::sort(File.Methods.begin(), File.Methods.end(), [](auto const& lhs, auto const& rhs)
+        {
+            return lhs.ActualMethod->IsConstructor > rhs.ActualMethod->IsConstructor;
+        });
     append(bytes, ::ToBytes((uint16_t)File.Methods.size()));
     for (auto method : File.Methods) { append(bytes, ::ToBytes(method, File)); }
     return bytes;
@@ -1060,9 +1069,19 @@ Bytes ClassAnalyzer::ToBytes()
 Bytes ToBytes(const uint32_t n)
 {
     const auto netNum = n;
+
+    union
+    {
+        uint32_t num;
+        unsigned char bytes[sizeof uint32_t];
+    } u;
+
+    u.num = netNum;
+
     Bytes bytes(sizeof n, '\0');
-    for (int i = 0; i < bytes.size(); i++)
-        bytes[bytes.size() - 1 - i] = (netNum >> (i * 8));
+
+    std::copy(std::rbegin(u.bytes), std::rend(u.bytes), bytes.begin());
+
     return bytes;
 }
 

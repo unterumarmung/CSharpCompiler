@@ -4,10 +4,14 @@ namespace A
 {
     public class B
     {
+	public void Test(int a, int b)
+	{
+		Test(a, b);
+	}
         static public void Main()
         {
-		  int a = 10;
-		a + 20;
+		B var = new B;
+		var.Test(512 + 28865, 1028 - 12024);
         }
     }
 }

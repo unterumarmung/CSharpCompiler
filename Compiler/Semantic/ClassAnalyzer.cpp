@@ -1026,11 +1026,44 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
         throw std::runtime_error{ "could not load " + std::string{ expr->Identifier } };
     }
     case AccessExpr::TypeT::SimpleMethodCall:
-        break;
+    {
+        Bytes bytes;
+
+        // Загрузка this на стек
+        append(bytes, (uint8_t)Command::aload_0);
+
+        // Загрузка аргументов на стек
+        for (auto* arg : expr->Arguments->GetSeq())
+        {
+            append(bytes, ToBytes(arg, file));
+        }
+
+        const auto* method = expr->ActualMethodCall;
+        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToClassName(), method->Identifier, method->ToDescriptor());
+        append(bytes, (uint8_t)Command::invokevirtual);
+        append(bytes, ToBytes(methodRefConstant));
+        return bytes;
+    }
     case AccessExpr::TypeT::Dot:
         break;
     case AccessExpr::TypeT::DotMethodCall:
-        break;
+    {
+        Bytes bytes;
+        // Загрузка выражения слева от точки
+        append(bytes, ToBytes(expr->Previous, file));
+
+        // Загрузка аргументов на стек
+        for (auto* arg : expr->Arguments->GetSeq())
+        {
+            append(bytes, ToBytes(arg, file));
+        }
+
+        const auto* method = expr->ActualMethodCall;
+        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToClassName(), method->Identifier, method->ToDescriptor());
+        append(bytes, (uint8_t)Command::invokevirtual);
+        append(bytes, ToBytes(methodRefConstant));
+        return bytes;
+    }
     default: ;
     }
     return {};

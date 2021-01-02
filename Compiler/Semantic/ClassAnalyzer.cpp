@@ -1006,7 +1006,25 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
     case AccessExpr::TypeT::Bool:
         break;
     case AccessExpr::TypeT::Identifier:
-        break;
+    {
+        Bytes bytes;
+        if (expr->ActualVar)
+        {
+            auto* const var = expr->ActualVar;
+            if (var->AType == DataType::IntType)
+            {
+                append(bytes, (uint8_t)Command::iload);
+                append(bytes, (uint8_t)var->PositionInMethod);
+            }
+            if (var->AType.AType == DataType::TypeT::Complex)
+            {
+                append(bytes, (uint8_t)Command::aload);
+                append(bytes, (uint8_t)var->PositionInMethod);
+            }
+            return bytes;
+        }
+        throw std::runtime_error{ "could not load " + std::string{ expr->Identifier } };
+    }
     case AccessExpr::TypeT::SimpleMethodCall:
         break;
     case AccessExpr::TypeT::Dot:

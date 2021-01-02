@@ -6,7 +6,8 @@ namespace A
     {
         static public void Main()
         {
-		  B var;
+		  int a = 10;
+		a + 20;
         }
     }
 }

@@ -414,13 +414,7 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
     value->Namespace = this->Namespace;
 
     for (auto* field : value->Members->Fields) { AnalyzeField(field); }
-    for (auto* method : value->Members->Methods)
-    {
-        auto&& varDeclNodes = method->Arguments->GetSeq();
-        std::transform(varDeclNodes.begin(), varDeclNodes.end(),
-                       std::back_inserter(method->ArgumentDtos),
-                       ToMethodArgumentDto);
-    }
+    for (auto* method : value->Members->Methods) { method->AnalyzeArguments(); }
     for (auto* method : value->Members->Methods) { AnalyzeMethod(method); }
 }
 
@@ -934,8 +928,8 @@ void ClassAnalyzer::FillTables(MethodDeclNode* method)
 {
     const auto nameId = File.Constants.FindUtf8(method->Identifier);
     const auto methodDescriptor = method->Identifier == "main" && method->IsStatic
-        ?  "([Ljava/lang/String;)V"
-        : method->ToDescriptor();
+                                      ? "([Ljava/lang/String;)V"
+                                      : method->ToDescriptor();
 
     const auto typeId = File.Constants.FindUtf8(methodDescriptor);
     const auto accessFlags = ToAccessFlags(method->Visibility, method->IsStatic);
@@ -970,7 +964,8 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file);
 
 Bytes ToBytes(AccessExpr* expr, ClassFile& file)
 {
-    switch (expr->Type) {
+    switch (expr->Type)
+    {
     case AccessExpr::TypeT::Expr:
         return ToBytes(expr->Child, file);
     case AccessExpr::TypeT::ArrayElementExpr:
@@ -1033,13 +1028,11 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
         append(bytes, (uint8_t)Command::aload_0);
 
         // Загрузка аргументов на стек
-        for (auto* arg : expr->Arguments->GetSeq())
-        {
-            append(bytes, ToBytes(arg, file));
-        }
+        for (auto* arg : expr->Arguments->GetSeq()) { append(bytes, ToBytes(arg, file)); }
 
         const auto* method = expr->ActualMethodCall;
-        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToClassName(), method->Identifier, method->ToDescriptor());
+        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToClassName(),
+                                                                    method->Identifier, method->ToDescriptor());
         append(bytes, (uint8_t)Command::invokevirtual);
         append(bytes, ToBytes(methodRefConstant));
         return bytes;
@@ -1053,13 +1046,11 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
         append(bytes, ToBytes(expr->Previous, file));
 
         // Загрузка аргументов на стек
-        for (auto* arg : expr->Arguments->GetSeq())
-        {
-            append(bytes, ToBytes(arg, file));
-        }
+        for (auto* arg : expr->Arguments->GetSeq()) { append(bytes, ToBytes(arg, file)); }
 
         const auto* method = expr->ActualMethodCall;
-        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToClassName(), method->Identifier, method->ToDescriptor());
+        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToClassName(),
+                                                                    method->Identifier, method->ToDescriptor());
         append(bytes, (uint8_t)Command::invokevirtual);
         append(bytes, ToBytes(methodRefConstant));
         return bytes;
@@ -1078,11 +1069,8 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         const auto rightBytes = ToBytes(expr->Right, file);
         append(bytes, leftBytes);
         append(bytes, rightBytes);
-        if (expr->AType != DataType::IntType)
-        {
-            throw std::runtime_error{ "Only ints are supported" };
-        }
-        switch (expr->Type)  // NOLINT(clang-diagnostic-switch-enum)
+        if (expr->AType != DataType::IntType) { throw std::runtime_error{ "Only ints are supported" }; }
+        switch (expr->Type) // NOLINT(clang-diagnostic-switch-enum)
         {
         case ExprNode::TypeT::BinPlus:
             append(bytes, (uint8_t)Command::iadd);
@@ -1096,15 +1084,13 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         case ExprNode::TypeT::Divide:
             append(bytes, (uint8_t)Command::idiv);
             break;
-        default: throw std::runtime_error{ "Not supported" };
+        default:
+            throw std::runtime_error{ "Not supported" };
         }
         return bytes;
     }
 
-    if (expr->Type == ExprNode::TypeT::AccessExpr)
-    {
-        return ToBytes(expr->Access, file);
-    }
+    if (expr->Type == ExprNode::TypeT::AccessExpr) { return ToBytes(expr->Access, file); }
 
     if (expr->Type == ExprNode::TypeT::SimpleNew)
     {
@@ -1134,35 +1120,17 @@ Bytes ToBytes(VarDeclNode* node, ClassFile& file)
     Bytes bytes;
 
     // Инициализация переменной
-    if (node->InitExpr)
-    {
-        append(bytes, ToBytes(node->InitExpr, file));
-    }
+    if (node->InitExpr) { append(bytes, ToBytes(node->InitExpr, file)); }
     else
     {
-        if (node->AType == DataType::IntType)
-        {
-            append(bytes, (uint8_t)Command::iconst_0);
-        }
-        else if (node->AType.AType == DataType::TypeT::Complex)
-        {
-            append(bytes, (uint8_t)Command::aconst_null);
-        }
-        else
-        {
-            throw std::runtime_error("unsupported type of variable " + ToString(node->AType));
-        }
+        if (node->AType == DataType::IntType) { append(bytes, (uint8_t)Command::iconst_0); }
+        else if (node->AType.AType == DataType::TypeT::Complex) { append(bytes, (uint8_t)Command::aconst_null); }
+        else { throw std::runtime_error("unsupported type of variable " + ToString(node->AType)); }
     }
 
-    if (node->AType == DataType::IntType)
-    {
-        append(bytes, (uint8_t)Command::istore);
-        
-    }
-    else if (node->AType.AType == DataType::TypeT::Complex)
-    {
-        append(bytes, (uint8_t)Command::astore);
-    }
+    if (node->AType == DataType::IntType) { append(bytes, (uint8_t)Command::istore); }
+    else
+        if (node->AType.AType == DataType::TypeT::Complex) { append(bytes, (uint8_t)Command::astore); }
 
     append(bytes, (uint8_t)node->PositionInMethod);
 
@@ -1173,7 +1141,8 @@ Bytes ToBytes(StmtNode* stmt, ClassFile& file)
 {
     Bytes bytes;
 
-    switch (stmt->Type) {
+    switch (stmt->Type)
+    {
     case StmtNode::TypeT::Empty:
         return bytes;
     case StmtNode::TypeT::VarDecl:
@@ -1198,7 +1167,6 @@ Bytes ToBytes(StmtNode* stmt, ClassFile& file)
     }
     return {};
 }
-
 
 
 Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
@@ -1226,10 +1194,7 @@ Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
         append(codeBytes, ToBytes(javaBaseObjectConstructor));
     }
 
-    for (auto* stmt : method->Body->GetSeq())
-    {
-        append(codeBytes, ToBytes(stmt, classFile));
-    }
+    for (auto* stmt : method->Body->GetSeq()) { append(codeBytes, ToBytes(stmt, classFile)); }
 
     append(codeBytes, (uint8_t)Command::return_);
 
@@ -1305,9 +1270,9 @@ Bytes ClassAnalyzer::ToBytes()
     for (auto field : File.Fields) { append(bytes, ::ToBytes(field)); }
 
     std::sort(File.Methods.begin(), File.Methods.end(), [](auto const& lhs, auto const& rhs)
-        {
-            return lhs.ActualMethod->IsConstructor > rhs.ActualMethod->IsConstructor;
-        });
+    {
+        return lhs.ActualMethod->IsConstructor > rhs.ActualMethod->IsConstructor;
+    });
     append(bytes, ::ToBytes((uint16_t)File.Methods.size()));
     for (auto method : File.Methods) { append(bytes, ::ToBytes(method, File)); }
     return bytes;

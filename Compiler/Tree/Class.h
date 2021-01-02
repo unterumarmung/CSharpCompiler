@@ -1,5 +1,7 @@
 #pragma once
 #include <algorithm>
+#include <iterator>
+
 
 #include "Stmt.h"
 #include "Type.h"
@@ -108,10 +110,18 @@ struct MethodDeclNode final : Node
     [[nodiscard]] std::string ToDescriptor() const
     {
         std::string desc = "(";
-        for (auto* param : Arguments->GetSeq()) { desc += param->AType.ToDescriptor(); }
+        for (const auto& param : ArgumentDtos) { desc += param.Type.ToDescriptor(); }
         desc += ")";
         desc += AReturnType.ToDescriptor();
         return desc;
+    }
+
+    void AnalyzeArguments()
+    {
+        auto&& varDeclNodes = Arguments->GetSeq();
+        std::transform(varDeclNodes.begin(), varDeclNodes.end(),
+                       std::back_inserter(ArgumentDtos),
+                       ToMethodArgumentDto);
     }
 };
 

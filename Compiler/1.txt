@@ -1,12 +1,12 @@
-using System;
-using System.Collections.Generic;
 namespace A
 {
     public class B
     {
 	public void Test(int a, int b)
 	{
-		Test(a, b);
+		System.Console Console = new System.Console;
+		int c = Console.ReadInt();
+		Console.WriteLine(c);
 	}
         static public void Main()
         {

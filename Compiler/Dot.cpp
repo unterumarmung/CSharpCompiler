@@ -379,6 +379,8 @@ void ToDot(StmtNode* node, std::ostream& out)
 
 void ToDot(const StmtSeqNode* node, std::ostream& out, Node* parent, const bool markNext, const bool createNode)
 {
+    if (!node)
+        return;
     size_t parentId = parent->Id;
     if (createNode)
     {
@@ -422,8 +424,11 @@ void ToDot(MethodDeclNode* node, std::ostream& out)
         out << MakeConnection(node->Id, arg->Id, "Method argument");
     }
 
-    ToDot(node->Body, out, node, true, true);
-    out << MakeConnection(node->Id, node->Body->Id, "Method body");
+    if (node->Body)
+    {
+        ToDot(node->Body, out, node, true, true);
+        out << MakeConnection(node->Id, node->Body->Id, "Method body");
+    }
 }
 
 void ToDot(FieldDeclNode* node, std::ostream& out)

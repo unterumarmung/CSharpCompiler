@@ -63,5 +63,6 @@ enum class Command : uint8_t
     ireturn = 0xAC,
     areturn = 0xB0,
     return_ = 0xB1,
-    aload_0 = 0x2A
+    aload_0 = 0x2A,
+    aconst_null = 0x1
 };

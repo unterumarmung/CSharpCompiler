@@ -243,7 +243,7 @@ void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
             return;
         }
         CurrentMethod->Variables.push_back(varDecl);
-        varDecl->PositionInMethod = CurrentMethod->Variables.size();
+        varDecl->PositionInMethod = CurrentMethod->Variables.size() - 1;
     }
 }
 
@@ -341,6 +341,16 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
         }
         AllMains.push_back(method);
         CurrentMethod->Identifier = "main";
+        // Локальная переменная args для мейна
+        CurrentMethod->Variables.push_back(new VarDeclNode(nullptr, "", nullptr));
+    }
+
+    if (!CurrentMethod->IsStatic)
+    {
+        // Локальная переменная this
+        auto thisVar = new VarDeclNode(nullptr, "this", nullptr);
+        thisVar->AType = CurrentClass->ToDataType();
+        CurrentMethod->Variables.push_back(thisVar);
     }
 
     const auto& allMethods = CurrentClass->Members->Methods;
@@ -1045,8 +1055,67 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         return ToBytes(expr->Access, file);
     }
 
+    if (expr->Type == ExprNode::TypeT::SimpleNew)
+    {
+        const auto type = expr->AType;
+        if (type.AType != DataType::TypeT::Complex)
+            throw std::runtime_error{ "Cannot create object of type " + ToString(type) };
+        const auto classIdConstant = file.Constants.FindClass(type.ToClassName());
+
+        Bytes bytes;
+        append(bytes, (uint8_t)Command::new_);
+        append(bytes, ToBytes(classIdConstant));
+        append(bytes, (uint8_t)Command::dup);
+
+        const auto constructorRef = file.Constants.FindMethodRef(type.ToClassName(), "<init>", "()V");
+        append(bytes, (uint8_t)Command::invokespecial);
+        append(bytes, ToBytes(constructorRef));
+
+        return bytes;
+    }
+
 
     return {};
+}
+
+Bytes ToBytes(VarDeclNode* node, ClassFile& file)
+{
+    Bytes bytes;
+
+    // Инициализация переменной
+    if (node->InitExpr)
+    {
+        append(bytes, ToBytes(node->InitExpr, file));
+    }
+    else
+    {
+        if (node->AType == DataType::IntType)
+        {
+            append(bytes, (uint8_t)Command::iconst_0);
+        }
+        else if (node->AType.AType == DataType::TypeT::Complex)
+        {
+            append(bytes, (uint8_t)Command::aconst_null);
+        }
+        else
+        {
+            throw std::runtime_error("unsupported type of variable " + ToString(node->AType));
+        }
+    }
+
+    if (node->AType == DataType::IntType)
+    {
+        append(bytes, (uint8_t)Command::istore);
+        
+    }
+    else if (node->AType.AType == DataType::TypeT::Complex)
+    {
+        append(bytes, (uint8_t)Command::astore);
+    }
+
+    append(bytes, (uint8_t)node->PositionInMethod);
+
+    return bytes;
 }
 
 Bytes ToBytes(StmtNode* stmt, ClassFile& file)
@@ -1057,7 +1126,7 @@ Bytes ToBytes(StmtNode* stmt, ClassFile& file)
     case StmtNode::TypeT::Empty:
         return bytes;
     case StmtNode::TypeT::VarDecl:
-        break;
+        return ToBytes(stmt->VarDecl, file);
     case StmtNode::TypeT::While:
         break;
     case StmtNode::TypeT::DoWhile:
@@ -1088,7 +1157,7 @@ Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
     constexpr auto stackSize = (uint16_t)1000;
     append(bytes, ToBytes(stackSize));
 
-    const uint16_t localVariablesCount = 1;
+    const uint16_t localVariablesCount = method->Variables.size();
 
     append(bytes, ToBytes(localVariablesCount));
 

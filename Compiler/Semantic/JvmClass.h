@@ -106,6 +106,8 @@ struct DataType
         value.pop_back();
         return value;
     }
+
+    [[nodiscard]] bool IsReferenceType() const { return AType == TypeT::Complex || ArrayArity >= 1; }
 };
 
 inline std::string ToString(DataType data)

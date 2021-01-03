@@ -100,3 +100,51 @@ AccessExpr* AccessExpr::FromDot(AccessExpr* previous, const char* const id, Expr
     node->Arguments = arguments;
     return node;
 }
+
+DataType AccessExpr::ToDataType() const
+{
+    if (Type == TypeT::ComplexArrayType)
+    {
+        auto childType = Previous->ToDataType();
+        childType.ArrayArity += 1;
+        return childType;
+    }
+    if (Type == TypeT::Identifier)
+    {
+        DataType data;
+        data.AType = DataType::TypeT::Complex;
+        data.ComplexType = { std::string{ Identifier } };
+        return data;
+    }
+    if (Type == TypeT::Dot)
+    {
+        auto childType = Previous->ToDataType();
+        childType.ComplexType.emplace_back(Identifier);
+        return childType;
+    }
+
+    return { DataType::TypeT::Void, {}, true };
+}
+
+void AccessExpr::CallForAllChildren(const std::function<void(AccessExpr*)>& function) const
+{
+    if (Previous)
+        function(Previous);
+
+    if (Child)
+    {
+        if (Child->Access) { function(Child->Access); }
+        if (Child->ArrayExpr) { function(Child->ArrayExpr); }
+    }
+
+    if (Arguments)
+    {
+        for (auto* arg : Arguments->GetSeq())
+        {
+            if (arg->Access)
+                function(arg->Access);
+            if (arg->ArrayExpr)
+                function(arg->ArrayExpr);
+        }
+    }
+}

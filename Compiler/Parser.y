@@ -262,7 +262,7 @@ for_stmt: FOR '(' var_decl ';' expr_optional ';' expr_optional ')' stmt         
 ;
 
 if_stmt: IF '(' expr ')' stmt               { $$ = new IfNode($3, $5); }
-        | IF '(' expr ')' stmt ELSE stmt    { $$ = new IfNode($3, $7); }
+        | IF '(' expr ')' stmt ELSE stmt    { $$ = new IfNode($3, $5, $7); }
 ;
 
 foreach_stmt: FOREACH '(' var_decl IN_KW expr ')' stmt      { $$ = new ForEachNode($3, $5, $7); }

@@ -51,7 +51,4 @@ int main(const int argc, char** argv)
     MakeTreeImage("TreeAfterSemantic.dot");
 
     semantic.Generate();
-
-    std::cout << "To close the program press Enter" << std::endl;
-    std::cin.get();
 }

@@ -28,6 +28,8 @@ Bytes ToBytes(uint16_t n);
 
 Bytes ToBytes(IntT n);
 
+Bytes ToBytes(int16_t n);
+
 struct Constant
 {
     enum class TypeT : uint8_t

@@ -314,6 +314,8 @@ void ClassAnalyzer::AnalyzeReturn(StmtNode* node)
 
 void ClassAnalyzer::AnalyzeStmt(StmtNode* stmt)
 {
+    if (!stmt)
+        return;
     AnalyzeVarDecl(stmt->VarDecl);
     AnalyzeWhile(stmt->While);
     AnalyzeDoWhile(stmt->DoWhile);
@@ -322,6 +324,7 @@ void ClassAnalyzer::AnalyzeStmt(StmtNode* stmt)
     AnalyzeIf(stmt->If);
     stmt->Expr = AnalyzeExpr(stmt->Expr);
     AnalyzeReturn(stmt);
+    if (stmt->Block) { for (auto* s : stmt->Block->GetSeq()) { AnalyzeStmt(s); } }
 }
 
 
@@ -441,6 +444,11 @@ void ClassAnalyzer::AnalyzeAccessExpr(AccessExpr* expr)
         return;
     AnalyzeSimpleMethodCall(expr);
     AnalyzeDotMethodCall(expr);
+    expr->CallForAllChildren([this](AccessExpr* expr)
+    {
+        AnalyzeSimpleMethodCall(expr);
+        AnalyzeDotMethodCall(expr);
+    });
 }
 
 void ClassAnalyzer::AnalyzeSimpleMethodCall(ExprNode* node)
@@ -489,6 +497,13 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(AccessExpr* expr)
     {
         Errors.push_back("Cannot call method with name " + std::string{ methodName } + " with arguments of types " +
                          ToString(callTypes));
+        return;
+    }
+
+    if (CurrentMethod->IsStatic && !(*foundMethod)->IsStatic)
+    {
+        Errors.push_back("Cannot call non-static method with name \'" + std::string{ methodName } +
+                         "\' from static method with name \'" + std::string{ CurrentMethod->Identifier } + "\'");
         return;
     }
 
@@ -631,17 +646,24 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         CalculateTypesForExpr(node->Right);
         const auto& leftType = node->Left->AType;
         const auto& rightType = node->Right->AType;
-        if (leftType == rightType)
-        {
-            node->AType = leftType;
-            return;
-        }
         if (IsLogical(node->Type))
         {
             node->AType = boolType;
             if (boolType == leftType && boolType == rightType)
                 return;
         }
+        else if (IsComparison(node->Type))
+        {
+            node->AType = boolType;
+            if (leftType == rightType)
+                return;
+        }
+        else if (leftType == rightType)
+        {
+            node->AType = leftType;
+            return;
+        }
+
         Errors.push_back("Types '" + ToString(leftType) + "' and '" + ToString(rightType) +
                          "' are not compatible with operation " + ToString(node->Type));
     }
@@ -717,6 +739,7 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
         access->AType = type;
         return type;
     case AccessExpr::TypeT::SimpleMethodCall:
+    {
         if (access->ActualMethodCall)
         {
             type = access->ActualMethodCall->AReturnType;
@@ -728,6 +751,8 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             access->AType = type;
         }
         return type;
+    }
+
     case AccessExpr::TypeT::ArrayElementExpr:
     {
         const auto dataTypeForPrevious = CalculateTypeForAccessExpr(access->Previous);
@@ -979,6 +1004,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
             append(bytes, (uint8_t)Command::iaload);
             return bytes;
         }
+        break;
     }
     case AccessExpr::TypeT::ComplexArrayType:
         break;
@@ -1009,7 +1035,14 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
     case AccessExpr::TypeT::Char:
         break;
     case AccessExpr::TypeT::Bool:
-        break;
+    {
+        Bytes bytes;
+        if (expr->Bool)
+            append(bytes, (uint8_t)Command::iconst_1);
+        else
+            append(bytes, (uint8_t)Command::iconst_0);
+        return bytes;
+    }
     case AccessExpr::TypeT::Identifier:
     {
         Bytes bytes;
@@ -1084,6 +1117,59 @@ enum class ArrayType : uint8_t
 
 Bytes ToBytes(ExprNode* expr, ClassFile& file)
 {
+    if (IsComparison(expr->Type))
+    {
+        Bytes bytes;
+        const auto leftBytes = ToBytes(expr->Left, file);
+        const auto rightBytes = ToBytes(expr->Right, file);
+
+        append(bytes, leftBytes);
+        append(bytes, rightBytes);
+
+        Command comparisonCommand;
+
+        // ReSharper disable once CppIncompleteSwitchStatement 
+        // ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
+        switch (expr->Type)
+        {
+            // NOLINT(clang-diagnostic-switch)
+        case ExprNode::TypeT::Less:
+            comparisonCommand = Command::if_icmpge;
+            break;
+        case ExprNode::TypeT::Greater:
+            comparisonCommand = Command::if_icmple;
+            break;
+        case ExprNode::TypeT::Equal:
+            comparisonCommand = Command::if_icmpne;
+            break;
+        case ExprNode::TypeT::NotEqual:
+            comparisonCommand = Command::if_icmpeq;
+            break;
+        case ExprNode::TypeT::GreaterOrEqual:
+            comparisonCommand = Command::if_icmplt;
+            break;
+        case ExprNode::TypeT::LessOrEqual:
+            comparisonCommand = Command::if_icmpgt;
+            break;
+        }
+
+        append(bytes, (uint8_t)comparisonCommand);
+        const auto falseCommandOffset = ToBytes((int16_t)7);
+        append(bytes, falseCommandOffset);
+        // Загружаем true
+        append(bytes, (uint8_t)Command::iconst_1);
+        // Прыгаем за границы if/else
+        append(bytes, (uint8_t)Command::goto_);
+        const auto trueOffset = ToBytes((int16_t)4);
+        append(bytes, trueOffset);
+        // Загружаем false
+        append(bytes, (uint8_t)Command::iconst_0);
+        // Команда, которая ничего не делает.
+        // Добавил на всякий случай, чтобы всегда было куда пригать из goto
+        append(bytes, (uint8_t)Command::nop);
+
+        return bytes;
+    }
     if (IsBinary(expr->Type))
     {
         Bytes bytes;
@@ -1144,10 +1230,7 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
             append(bytes, (uint8_t)ArrayType::Int);
             return bytes;
         }
-        else 
-        {
-            throw std::runtime_error{ "Cannot create object of type " + ToString(type) };
-        }
+        throw std::runtime_error{ "Cannot create object of type " + ToString(type) };
     }
 
     if (expr->Type == ExprNode::TypeT::AssignOnArrayElement)
@@ -1182,15 +1265,71 @@ Bytes ToBytes(VarDeclNode* node, ClassFile& file)
 
     if (node->AType == DataType::IntType) { append(bytes, (uint8_t)Command::istore); }
     else if (node->AType.AType == DataType::TypeT::Complex) { append(bytes, (uint8_t)Command::astore); }
-    else if (node->AType.ArrayArity >= 1) { append(bytes, (uint8_t)Command::astore); }
+    else
+        if (node->AType.ArrayArity >= 1) { append(bytes, (uint8_t)Command::astore); }
 
     append(bytes, (uint8_t)node->PositionInMethod);
 
     return bytes;
 }
 
+Bytes ToBytes(StmtNode* stmt, ClassFile& file);
+
+Bytes ToBytes(StmtSeqNode* block, ClassFile& file)
+{
+    Bytes bytes;
+    for (auto* stmt : block->GetSeq()) { append(bytes, ToBytes(stmt, file)); }
+    return bytes;
+}
+
+Bytes ToBytes(IfNode* stmt, ClassFile& file)
+{
+    const auto hasElse = stmt->ElseBranch != nullptr;
+    const auto conditionBytes = ToBytes(stmt->Condition, file);
+    auto trueBranchBytes = ToBytes(stmt->ThenBranch, file);
+    const auto elseBytes = ToBytes(stmt->ElseBranch, file);
+
+    Bytes bytes;
+    append(bytes, conditionBytes);
+
+    if (hasElse)
+    {
+        const auto trueBranchOffset = ToBytes((int16_t)(elseBytes.size() + 3));
+        append(trueBranchBytes, (uint8_t)Command::goto_);
+        append(trueBranchBytes, trueBranchOffset);
+    }
+
+    append(bytes, (uint8_t)Command::ifeq);
+    append(bytes, ToBytes((int16_t)(trueBranchBytes.size() + 3)));
+    append(bytes, trueBranchBytes);
+    append(bytes, elseBytes);
+    append(bytes, (uint8_t)Command::nop);
+
+    return bytes;
+}
+
+Bytes ReturnToBytes(ExprNode* returnExpr, ClassFile& file)
+{
+    Bytes bytes;
+    if (returnExpr == nullptr) { append(bytes, (uint8_t)Command::return_); }
+    else if (returnExpr->AType == DataType::IntType || returnExpr->AType == DataType::BoolType)
+    {
+        append(bytes, ToBytes(returnExpr, file));
+        append(bytes, (uint8_t)Command::ireturn);
+    }
+    else if (returnExpr->AType.IsReferenceType())
+    {
+        append(bytes, ToBytes(returnExpr, file));
+        append(bytes, (uint8_t)Command::areturn);
+    }
+
+    return bytes;
+}
+
 Bytes ToBytes(StmtNode* stmt, ClassFile& file)
 {
+    if (!stmt)
+        return {};
     Bytes bytes;
 
     switch (stmt->Type)
@@ -1208,11 +1347,11 @@ Bytes ToBytes(StmtNode* stmt, ClassFile& file)
     case StmtNode::TypeT::Foreach:
         break;
     case StmtNode::TypeT::BlockStmt:
-        break;
+        return ToBytes(stmt->Block, file);
     case StmtNode::TypeT::IfStmt:
-        break;
+        return ToBytes(stmt->If, file);
     case StmtNode::TypeT::Return:
-        break;
+        return ReturnToBytes(stmt->Expr, file);
     case StmtNode::TypeT::ExprStmt:
         return ToBytes(stmt->Expr, file);
     default: ;
@@ -1348,6 +1487,15 @@ Bytes ToBytes(const uint32_t n)
 
     std::copy(std::rbegin(u.bytes), std::rend(u.bytes), bytes.begin());
 
+    return bytes;
+}
+
+Bytes ToBytes(const int16_t n)
+{
+    Bytes bytes;
+    const auto otherBytes = ToBytes((int32_t)n);
+    bytes.push_back(otherBytes[2]);
+    bytes.push_back(otherBytes[3]);
     return bytes;
 }
 

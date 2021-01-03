@@ -969,7 +969,17 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
     case AccessExpr::TypeT::Expr:
         return ToBytes(expr->Child, file);
     case AccessExpr::TypeT::ArrayElementExpr:
-        break;
+    {
+        const auto arrayType = expr->Previous->AType;
+        if (arrayType.AType == DataType::TypeT::Int && arrayType.ArrayArity == 1)
+        {
+            Bytes bytes;
+            append(bytes, ToBytes(expr->Previous, file));
+            append(bytes, ToBytes(expr->Child, file));
+            append(bytes, (uint8_t)Command::iaload);
+            return bytes;
+        }
+    }
     case AccessExpr::TypeT::ComplexArrayType:
         break;
     case AccessExpr::TypeT::Integer:
@@ -1011,7 +1021,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
                 append(bytes, (uint8_t)Command::iload);
                 append(bytes, (uint8_t)var->PositionInMethod);
             }
-            if (var->AType.AType == DataType::TypeT::Complex)
+            if (var->AType.AType == DataType::TypeT::Complex || var->AType.ArrayArity >= 1)
             {
                 append(bytes, (uint8_t)Command::aload);
                 append(bytes, (uint8_t)var->PositionInMethod);
@@ -1060,6 +1070,18 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
     return {};
 }
 
+enum class ArrayType : uint8_t
+{
+    Boolean = 4,
+    Char = 5,
+    Float = 6,
+    Double = 7,
+    Byte = 8,
+    Short = 9,
+    Int = 10,
+    Long = 11
+};
+
 Bytes ToBytes(ExprNode* expr, ClassFile& file)
 {
     if (IsBinary(expr->Type))
@@ -1095,7 +1117,7 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
     if (expr->Type == ExprNode::TypeT::SimpleNew)
     {
         const auto type = expr->AType;
-        if (type.AType != DataType::TypeT::Complex)
+        if (type.AType != DataType::TypeT::Complex && type.ArrayArity > 0)
             throw std::runtime_error{ "Cannot create object of type " + ToString(type) };
         const auto classIdConstant = file.Constants.FindClass(type.ToClassName());
 
@@ -1111,6 +1133,36 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         return bytes;
     }
 
+    if (expr->Type == ExprNode::TypeT::StandardArrayNew)
+    {
+        const auto type = expr->AType;
+        if (type.AType == DataType::TypeT::Int && type.ArrayArity == 1)
+        {
+            Bytes bytes;
+            append(bytes, ToBytes(expr->Child, file));
+            append(bytes, (uint8_t)Command::newarray);
+            append(bytes, (uint8_t)ArrayType::Int);
+            return bytes;
+        }
+        else 
+        {
+            throw std::runtime_error{ "Cannot create object of type " + ToString(type) };
+        }
+    }
+
+    if (expr->Type == ExprNode::TypeT::AssignOnArrayElement)
+    {
+        const auto arrayType = expr->ArrayExpr->AType;
+        if (arrayType.AType == DataType::TypeT::Int && arrayType.ArrayArity == 1)
+        {
+            Bytes bytes;
+            append(bytes, ToBytes(expr->ArrayExpr, file));
+            append(bytes, ToBytes(expr->IndexExpr, file));
+            append(bytes, ToBytes(expr->AssignExpr, file));
+            append(bytes, (uint8_t)Command::iastore);
+            return bytes;
+        }
+    }
 
     return {};
 }
@@ -1129,8 +1181,8 @@ Bytes ToBytes(VarDeclNode* node, ClassFile& file)
     }
 
     if (node->AType == DataType::IntType) { append(bytes, (uint8_t)Command::istore); }
-    else
-        if (node->AType.AType == DataType::TypeT::Complex) { append(bytes, (uint8_t)Command::astore); }
+    else if (node->AType.AType == DataType::TypeT::Complex) { append(bytes, (uint8_t)Command::astore); }
+    else if (node->AType.ArrayArity >= 1) { append(bytes, (uint8_t)Command::astore); }
 
     append(bytes, (uint8_t)node->PositionInMethod);
 

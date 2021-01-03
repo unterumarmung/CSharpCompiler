@@ -5,13 +5,16 @@ namespace A
 	public void Test(int a, int b)
 	{
 		System.Console Console = new System.Console;
-		int c = Console.ReadInt();
-		Console.WriteLine(c);
 	}
         static public void Main()
         {
 		B var = new B;
-		var.Test(512 + 28865, 1028 - 12024);
+		//var.Test(512 + 28865, 1028 - 12024);
+		int[] arr = new int[10];
+		System.Console Console = new System.Console;
+		Console.WriteLine(arr[0]);
+		arr[0] = 65846854;
+		Console.WriteLine(arr[0]);
         }
     }
 }

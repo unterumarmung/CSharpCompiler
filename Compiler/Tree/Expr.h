@@ -1,9 +1,11 @@
 #pragma once
 #include "Node.h"
 #include "Type.h"
-
+#include "../Semantic/JvmClass.h"
+#include <functional>
 struct AccessExpr;
 struct ExprSeqNode;
+struct ClassDeclNode;
 
 struct ExprNode final : Node
 {
@@ -34,16 +36,20 @@ struct ExprNode final : Node
         Multiply_assign,
         Division_assign,
         Increment,
-        Decrement
+        Decrement,
+        AssignOnArrayElement,
+        StandardArrayNew
     } Type{};
+
+    DataType AType;
 
     // »спользуютс€ как дети дл€ бинарных операций
     ExprNode* Left{};
     ExprNode* Right{};
 
-    // »спользуетс€ дл€ операции каста выражени€
+    // »спользуетс€ дл€ операции каста выражени€ и массива простых типов
     StandardType StandardTypeChild{};
-    // »спользуетс€ дл€ унарных операций
+    // »спользуетс€ дл€ унарных операций и new массива простых типов
     ExprNode* Child{};
 
     AccessExpr* Access{};
@@ -51,6 +57,11 @@ struct ExprNode final : Node
     ExprSeqNode* ExprSeq{};
 
     TypeNode* TypeNode{};
+
+    // For AssignOnArrayElement
+    AccessExpr* ArrayExpr{};
+    ExprNode* IndexExpr{};
+    ExprNode* AssignExpr{};
 
     static ExprNode* FromBinaryExpression(TypeT type, ExprNode* lhs, ExprNode* rhs);
 
@@ -66,7 +77,15 @@ struct ExprNode final : Node
 
     static ExprNode* FromCast(StandardType standardType, ExprNode* expr);
 
+    static ExprNode* FromNew(StandardType standardType, ExprNode* expr);
+
     [[nodiscard]] std::string_view Name() const noexcept override { return "Expr"; }
+
+    ExprNode* ToAssignOnArrayElement() const;
+
+    void ApplyToAllChildren(const std::function<ExprNode*(ExprNode*)>& mapFunction);
+
+    void CallForAllChildren(const std::function<void(ExprNode*)>& function) const;
 
 private:
     explicit ExprNode() : Node()
@@ -95,6 +114,35 @@ inline bool IsBinary(const ExprNode::TypeT type)
     case ExprNode::TypeT::Minus_assign:
     case ExprNode::TypeT::Multiply_assign:
     case ExprNode::TypeT::Division_assign:
+        return true;
+    default:
+        return false;
+    }
+}
+
+inline bool IsComparison(const ExprNode::TypeT type)
+{
+    switch (type) // NOLINT(clang-diagnostic-switch-enum)
+    {
+    case ExprNode::TypeT::Less:
+    case ExprNode::TypeT::Greater:
+    case ExprNode::TypeT::Equal:
+    case ExprNode::TypeT::NotEqual:
+    case ExprNode::TypeT::GreaterOrEqual:
+    case ExprNode::TypeT::LessOrEqual:
+        return true;
+    default:
+        return false;
+    }
+}
+
+inline bool IsLogical(const ExprNode::TypeT type)
+{
+    switch (type) // NOLINT(clang-diagnostic-switch-enum)
+    {
+    case ExprNode::TypeT::And:
+    case ExprNode::TypeT::Or:
+    case ExprNode::TypeT::Not:
         return true;
     default:
         return false;
@@ -172,8 +220,11 @@ inline std::string ToString(const ExprNode::TypeT type)
         return "++";
     case ExprNode::TypeT::Decrement:
         return "--";
-    default:
-        return "";
+    case ExprNode::TypeT::AssignOnArrayElement:
+        return "[]=";
+    case ExprNode::TypeT::StandardArrayNew:
+        return "new[]";
+    default: ;
     }
 }
 

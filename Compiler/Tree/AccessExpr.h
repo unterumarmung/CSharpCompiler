@@ -2,6 +2,10 @@
 
 #include "Expr.h"
 
+struct MethodDeclNode;
+struct FieldDeclNode;
+struct VarDeclNode;
+
 struct AccessExpr final : Node
 {
     enum class TypeT
@@ -33,6 +37,12 @@ struct AccessExpr final : Node
 
     ExprSeqNode* Arguments{};
 
+    MethodDeclNode* ActualMethodCall{};
+    FieldDeclNode* ActualField{};
+    VarDeclNode* ActualVar{};
+
+    DataType AType{};
+
     [[nodiscard]] std::string_view Name() const noexcept override { return "AccessExpr"; }
 
     static AccessExpr* FromExpr(ExprNode* expr);
@@ -58,6 +68,10 @@ struct AccessExpr final : Node
     static AccessExpr* FromDot(AccessExpr* previous, const char* id);
 
     static AccessExpr* FromDot(AccessExpr* previous, const char* id, ExprSeqNode* arguments);
+
+    [[nodiscard]] DataType ToDataType() const;
+
+    void CallForAllChildren(const std::function<void(AccessExpr*)>& function) const;
 
 private:
     AccessExpr() : Node()

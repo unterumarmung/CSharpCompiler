@@ -22,10 +22,13 @@
     <Flex Include="Lexer.l" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Semantic\ClassAnalyzer.cpp" />
     <ClCompile Include="Dot.cpp" />
     <ClCompile Include="Lexer.flex.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Parser.tab.cpp" />
+    <ClCompile Include="Semantic\JvmClass.cpp" />
+    <ClCompile Include="Semantic\Semantic.cpp" />
     <ClCompile Include="Tree\AccessExpr.cpp" />
     <ClCompile Include="Tree\Class.cpp" />
     <ClCompile Include="Tree\Expr.cpp" />
@@ -45,8 +48,12 @@
     </Bison>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Semantic\ClassAnalyzer.h" />
     <ClInclude Include="Dot.h" />
     <ClInclude Include="Parser.tab.h" />
+    <ClInclude Include="Semantic\Commands.h" />
+    <ClInclude Include="Semantic\JvmClass.h" />
+    <ClInclude Include="Semantic\Semantic.h" />
     <ClInclude Include="Tree\AccessExpr.h" />
     <ClInclude Include="Tree\Class.h" />
     <ClInclude Include="Tree\Enum.h" />
@@ -55,6 +62,7 @@
     <ClInclude Include="Tree\Program.h" />
     <ClInclude Include="Tree\Stmt.h" />
     <ClInclude Include="Tree\Type.h" />
+    <ClInclude Include="VisibilityModified.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -166,6 +174,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -198,6 +207,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

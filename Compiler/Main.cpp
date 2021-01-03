@@ -5,9 +5,27 @@
 
 #include "Parser.tab.h"
 #include "Dot.h"
+#include "Semantic/Semantic.h"
 
 extern FILE* yyin;
 struct Program* treeRoot;
+
+void MakeTreeImage(std::string_view filename)
+{
+    {
+        std::cout << "Generating dot file for " << filename << std::endl;
+        using namespace std::filesystem;
+        const auto dotFile = current_path() / "Output" / filename;
+        create_directory(current_path() / "Output");
+        {
+            std::fstream treeOut;
+            treeOut.open(dotFile, std::ios_base::out);
+            ToDot(treeRoot, treeOut);
+        }
+        std::cout << "Generating picture" << std::endl;
+        RunDot("../ThirdParty/Bin/dot/dot.exe", dotFile.string());
+    }
+}
 
 int main(const int argc, char** argv)
 {
@@ -21,20 +39,16 @@ int main(const int argc, char** argv)
     std::cout << "Building syntax tree" << std::endl;
     yyparse();
 
-    {
-        std::cout << "Generating dot file for syntax tree" << std::endl;
-        using namespace std::filesystem;
-        const auto dotFile = current_path() / "Output" / "Tree.dot";
-        create_directory(current_path() / "Output");
-        {
-            std::fstream treeOut;
-            treeOut.open(dotFile, std::ios_base::out);
-            ToDot(treeRoot, treeOut);
-        }
-        std::cout << "Generating picture of syntax tree" << std::endl;
-        RunDot("../ThirdParty/Bin/dot/dot.exe", dotFile.string());
-    }
+    MakeTreeImage("TreeBeforeSemantic.dot");
 
-    std::cout << "To close the program press Enter" << std::endl;
-    std::cin.get();
+    Semantic semantic(treeRoot);
+    semantic.Analyze();
+
+    std::cout << std::endl << "Errors: " << std::endl;
+    for (auto const& error : semantic.Errors) { std::cout << error << std::endl; }
+    std::cout << std::endl;
+
+    MakeTreeImage("TreeAfterSemantic.dot");
+
+    semantic.Generate();
 }

@@ -216,6 +216,7 @@ expr: expr '+' expr                             { $$ = ExprNode::FromBinaryExpre
     | NEW type '{' expr_seq_optional '}'        { $$ = ExprNode::FromNew($2, $4); }
     | NEW '[' ']' '{' expr_seq_optional '}'     { $$ = ExprNode::FromNew(nullptr, $5); }
     | '(' standard_type ')' expr                { $$ = ExprNode::FromCast($2, $4); }
+    | NEW standard_type '[' expr ']'            { $$ = ExprNode::FromNew($2, $4); }
 ;
 
 expr_optional:                  { $$ = nullptr; }
@@ -240,7 +241,7 @@ stmt: ';'                           { $$ = new StmtNode(); }
     | if_stmt                       { $$ = new StmtNode($1); }
     | foreach_stmt                  { $$ = new StmtNode($1); }
     | '{' stmt_seq_optional '}'     { $$ = new StmtNode($2); }
-    | RETURN expr ';'               { $$ = new StmtNode($2, /* isReturn= */ true); }
+    | RETURN expr_optional ';'      { $$ = new StmtNode($2, /* isReturn= */ true); }
 ;
 
 stmt_seq: stmt              { $$ = new StmtSeqNode($1); }
@@ -261,7 +262,7 @@ for_stmt: FOR '(' var_decl ';' expr_optional ';' expr_optional ')' stmt         
 ;
 
 if_stmt: IF '(' expr ')' stmt               { $$ = new IfNode($3, $5); }
-        | IF '(' expr ')' stmt ELSE stmt    { $$ = new IfNode($3, $7); }
+        | IF '(' expr ')' stmt ELSE stmt    { $$ = new IfNode($3, $5, $7); }
 ;
 
 foreach_stmt: FOREACH '(' var_decl IN_KW expr ')' stmt      { $$ = new ForEachNode($3, $5, $7); }
@@ -302,6 +303,8 @@ visibility_modifier: PUBLIC         { $$ = VisibilityModifier::Public; }
 
 method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'      { $$ = new MethodDeclNode($1, $2, $3, $5, $8); }
            | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'   { $$ = new MethodDeclNode($1, nullptr, $3, $5, $8); }
+           | visibility_modifier STATIC VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'   { $$ = new MethodDeclNode($1, nullptr, $4, $6, $9, /* isStatic = */ true); }
+           | STATIC visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'   { $$ = new MethodDeclNode($2, nullptr, $4, $6, $9, /* isStatic = */ true); }
 ;
 
 field_decl: visibility_modifier var_decl ';'              { $$ = new FieldDeclNode($1, $2); }

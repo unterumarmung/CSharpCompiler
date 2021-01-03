@@ -1,13 +1,16 @@
 #pragma once
 #include "Expr.h"
 #include "Type.h"
+#include "../Semantic/JvmClass.h"
 
 struct VarDeclNode final : Node
 {
     TypeNode* VarType{};
-    const char* Identifier{};
+    std::string_view Identifier{};
     ExprNode* InitExpr{};
 
+    DataType AType{};
+    int PositionInMethod{};
 
     VarDeclNode(TypeNode* const varType, const char* const identifier, ExprNode* const initExpr)
         : VarType{ varType }

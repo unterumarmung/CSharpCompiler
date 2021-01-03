@@ -1,27 +1,23 @@
-using System;
-using System.Collections.Generic;
 namespace A
 {
     public class B
     {
-       
-        public void C(int a, int b)
+	public int[] Test(int a)
+	{
+		return new int[a];
+	}
+        static public void Main()
         {
-            int[][][] array;
-            return array;
+		System.Console Console = new System.Console;
+
+		B var = new B;
+
+		int i = Console.ReadInt();
+			if (var.Test(i)[0] == 0) {
+				Console.WriteLine(1);
+			} else {
+				Console.WriteLine(0);
+			}
         }
     }
-
-    public class C : System.IEnumerable
-    {
-        public IEnumerable VV()
-        {
-            for (int i = 0; i < 25; i = i + 1)
-            {
-                ;
-            }
-        }
-    }
-
-    public class V : object {}
 }

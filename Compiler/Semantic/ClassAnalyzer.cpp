@@ -18,6 +18,7 @@ bool operator==(const Constant& lhs, const Constant& rhs)
     case Constant::TypeT::Float:
         return lhs.Float == rhs.Float;
     case Constant::TypeT::String:
+        return lhs.Utf8Id == rhs.Utf8Id;
     case Constant::TypeT::Class:
         return lhs.ClassNameId == rhs.ClassNameId;
     case Constant::TypeT::NameAndType:
@@ -99,6 +100,18 @@ Constant Constant::CreateMethodRef(IdT natId, IdT classId)
 IdT ConstantTable::FindUtf8(std::string_view utf8)
 {
     const auto constant = Constant::CreateUtf8(std::string{ utf8 });
+    const auto foundIter = std::find(Constants.begin(), Constants.end(), constant);
+    if (foundIter == Constants.end())
+    {
+        Constants.push_back(constant);
+        return Constants.end() - Constants.begin();
+    }
+    return foundIter - Constants.begin() + 1;
+}
+
+IdT ConstantTable::FindString(std::string_view str)
+{
+    const auto constant = Constant::CreateString(FindUtf8(str));
     const auto foundIter = std::find(Constants.begin(), Constants.end(), constant);
     if (foundIter == Constants.end())
     {
@@ -1033,7 +1046,14 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
     case AccessExpr::TypeT::Float:
         break;
     case AccessExpr::TypeT::String:
-        break;
+    {
+        Bytes bytes;
+        const auto constantId = file.Constants.FindString(expr->String);
+        const auto constantIdBytes = ToBytes(constantId);
+        append(bytes, (uint8_t)Command::ldc_w);
+        append(bytes, constantIdBytes);
+        return bytes;
+    }
     case AccessExpr::TypeT::Char:
         break;
     case AccessExpr::TypeT::Bool:
@@ -1183,6 +1203,31 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
 
         return bytes;
     }
+
+    if (expr->Type == ExprNode::TypeT::Assign)
+    {
+        if (expr->Left->Access && expr->Left->Access->ActualVar)
+        {
+            Bytes bytes;
+            const auto rightBytes = ToBytes(expr->Right, file);
+            append(bytes, rightBytes);
+            auto* var = expr->Left->Access->ActualVar;
+            const auto variableNumberBytes = (uint8_t)(var->PositionInMethod);
+            if (var->AType.IsReferenceType())
+            {
+                append(bytes, (uint8_t)Command::astore);
+            }
+            else if (var->AType == DataType::IntType || var->AType == DataType::BoolType)
+            {
+                append(bytes, (uint8_t)Command::istore);
+            }
+
+            append(bytes, variableNumberBytes);
+            return bytes;
+        }
+        throw std::runtime_error{ "only variable can be assigned" };
+    }
+
     if (IsBinary(expr->Type))
     {
         Bytes bytes;
@@ -1205,6 +1250,7 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         case ExprNode::TypeT::Divide:
             append(bytes, (uint8_t)Command::idiv);
             break;
+
         default:
             throw std::runtime_error{ "Not supported" };
         }
@@ -1364,7 +1410,35 @@ Bytes ReturnToBytes(ExprNode* returnExpr, ClassFile& file)
     return bytes;
 }
 
-Bytes ToBytes(WhileNode* while_, ClassFile& file) { return {}; }
+Bytes ToBytes(WhileNode* while_, ClassFile& file)
+{
+    Bytes bytes;
+
+    const auto conditionBytes = ToBytes(while_->Condition, file);
+    const auto bodyBytes = ToBytes(while_->Body, file);
+
+    constexpr auto ifeqCommandLength = 3;
+    constexpr auto gotoCommandLength = 3;
+    const auto gotoBytesOffset = -static_cast<int16_t>(conditionBytes.size() + bodyBytes.size() + ifeqCommandLength);
+    const auto ifeqBytesOffset = static_cast<int16_t>(bodyBytes.size() + ifeqCommandLength + gotoCommandLength);
+    // Загружаем условие
+    append(bytes, conditionBytes);
+
+    // Проверяем результат условия на ноль
+    append(bytes, (uint8_t)Command::ifeq);
+    append(bytes, ToBytes(ifeqBytesOffset));
+
+    // Тело цикла
+    append(bytes, bodyBytes);
+
+    // Прыжок на проверку условия цикла
+    append(bytes, (uint8_t)Command::goto_);
+    append(bytes, ToBytes((int16_t)gotoBytesOffset));
+
+    append(bytes, (uint8_t)Command::nop);
+   
+    return bytes;
+}
 
 Bytes ToBytes(StmtNode* stmt, ClassFile& file)
 {
@@ -1398,7 +1472,6 @@ Bytes ToBytes(StmtNode* stmt, ClassFile& file)
     }
     return {};
 }
-
 
 Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
 {

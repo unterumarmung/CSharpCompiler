@@ -133,8 +133,9 @@ void AccessExpr::CallForAllChildren(const std::function<void(AccessExpr*)>& func
 
     auto exprFunctor = [&function](ExprNode* node)
     {
-        if (node->Child->Access) { function(node->Child->Access); }
-        if (node->Child->ArrayExpr) { function(node->Child->ArrayExpr); }
+        if (!node) { return; }
+        if (node->Child && node->Child->Access) { function(node->Child->Access); }
+        if (node->Child && node->Child->ArrayExpr) { function(node->Child->ArrayExpr); }
     };
 
     if (Child) { Child->CallForAllChildren(exprFunctor); }

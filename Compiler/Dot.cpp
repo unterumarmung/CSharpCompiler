@@ -93,7 +93,7 @@ void ToDot(AccessExpr* const node, std::ostream& out, const bool isType)
 {
     const auto nameSuffix = isType
                                 ? ""
-                                : "\nCalculated data type: " + ToString(node->AType);
+                                : "\\nCalculated data type: " + ToString(node->AType);
     switch (node->Type)
     {
     case AccessExpr::TypeT::Expr:
@@ -120,7 +120,7 @@ void ToDot(AccessExpr* const node, std::ostream& out, const bool isType)
         out << MakeNode(node->Id, std::to_string(node->Float) + nameSuffix);
         return;
     case AccessExpr::TypeT::String:
-        out << MakeNode(node->Id, "\"" + std::string{ node->String } + "\"" + nameSuffix);
+        out << MakeNode(node->Id, "\\\"" + std::string{ node->String } + "\\\"" + nameSuffix);
         return;
     case AccessExpr::TypeT::Char:
         out << MakeNode(node->Id, "\'" + std::string{ node->Char } + "\'" + nameSuffix);

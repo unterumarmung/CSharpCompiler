@@ -2,21 +2,19 @@ namespace A
 {
     public class B
     {
-	public int[] Test(int a)
-	{
-		return new int[a];
-	}
+		public bool Test()
+		{
+			return true;
+		}
         static public void Main()
         {
 		System.Console Console = new System.Console;
 
 		B var = new B;
-
-		int i = Console.ReadInt();
-			if (var.Test(i)[0] == 0) {
+		bool var2 = var.Test();
+			if (var.Test())
+			{
 				Console.WriteLine(1);
-			} else {
-				Console.WriteLine(0);
 			}
         }
     }

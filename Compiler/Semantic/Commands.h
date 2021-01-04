@@ -66,4 +66,5 @@ enum class Command : uint8_t
     aload_0 = 0x2A,
     aconst_null = 0x1,
     nop = 0,
+    ineg = 0x74,
 };

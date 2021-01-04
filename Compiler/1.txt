@@ -2,21 +2,54 @@ namespace A
 {
     public class B
     {
-	public int[] Test(int a)
-	{
-		return new int[a];
-	}
+		public void Sort(int[] array, int length)
+		{
+			int outer = 0;
+			while (outer < length) 
+			{
+				int inner = 0;
+				while (inner < length - 1)
+				{
+					if (array[inner] > array[inner + 1]) 
+					{
+						int temp = array[inner];
+						array[inner] = array[inner + 1];
+						array[inner + 1] = temp;
+					}
+					inner = inner + 1;
+				}
+				outer = outer + 1;
+			}
+		}
         static public void Main()
         {
-		System.Console Console = new System.Console;
+			System.Console Console = new System.Console;
 
-		B var = new B;
+			Console.WriteLine("Enter array length: ");
 
-		int i = Console.ReadInt();
-			if (var.Test(i)[0] == 0) {
-				Console.WriteLine(1);
-			} else {
-				Console.WriteLine(0);
+			int arrayLength = Console.ReadInt();
+
+			int[] array = new int[arrayLength];
+
+
+			Console.WriteLine("Enter array: ");
+			int i = 0;
+			while (i < arrayLength)
+			{
+				array[i] = Console.ReadInt();
+				i = i + 1;
+			}
+
+			B var = new B;
+			var.Sort(array, arrayLength);
+
+			Console.WriteLine("Array after sorting:");
+
+			i = 0;
+			while (i < arrayLength)
+			{
+				Console.WriteLine(array[i]);
+				i = i + 1;
 			}
         }
     }

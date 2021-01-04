@@ -112,15 +112,24 @@ void ExprNode::CallForAllChildren(const std::function<void(ExprNode*)>& function
         function(Left);
     if (Right)
         function(Right);
-    if (Access && Access->Child)
-        function(Access->Child);
+
+    if (Child)
+        function(Child);
+
+    auto accessFunctor = [&function](AccessExpr* node)
+    {
+        if (node && node->Child)
+            function(node->Child);
+        if (node && node->Arguments)
+            for (ExprNode* exprNode : node->Arguments->GetSeq()) { function(exprNode); }
+    };
+
+    accessFunctor(Access);
+    accessFunctor(ArrayExpr);
 
     if (ExprSeq)
         for (auto& expr : ExprSeq->GetSeq())
             function(expr);
-
-    if (ArrayExpr && ArrayExpr->Child)
-        function(ArrayExpr->Child);
 
     if (IndexExpr)
         function(IndexExpr);

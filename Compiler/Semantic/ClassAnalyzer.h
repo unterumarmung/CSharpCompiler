@@ -88,6 +88,8 @@ struct ConstantTable
 
     IdT FindUtf8(std::string_view utf8);
 
+    IdT FindString(std::string_view str);
+
     IdT FindInt(IntT i);
 
     IdT FindFloat(FloatT i);

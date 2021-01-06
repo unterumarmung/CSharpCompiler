@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <set>
 #include "JvmClass.h"
 #include "ClassAnalyzer.h"
 
@@ -17,7 +18,7 @@ struct Semantic
     MethodDeclNode* CurrentMethod = nullptr;
     ClassDeclNode* CurrentClass = nullptr;
 
-    std::vector<std::string> Errors;
+    std::set<std::string> Errors;
 
     void Analyze()
     {
@@ -26,8 +27,8 @@ struct Semantic
         {
             if (_namespace->NamespaceName != "System") { AnalyzeNamespace(_namespace); }
         }
-        if (AllMains.size() > 1) { Errors.emplace_back("There must be only one main in the program"); }
-        if (AllMains.empty()) { Errors.emplace_back("Cannot run a program without an entry point"); }
+        if (AllMains.size() > 1) { Errors.insert("There must be only one main in the program"); }
+        if (AllMains.empty()) { Errors.insert("Cannot run a program without an entry point"); }
     }
 
     void CheckSystemNamespace()
@@ -36,7 +37,7 @@ struct Semantic
         {
             if (_namespace->NamespaceName == "System")
             {
-                Errors.emplace_back("You cannot declare namespace System");
+                Errors.insert("You cannot declare namespace System");
                 return;
             }
         }
@@ -117,7 +118,7 @@ struct Semantic
         {
             ClassAnalyzer analyzer(class_, namespace_, program->Namespaces);
             analyzer.Analyze();
-            Errors.insert(Errors.end(), analyzer.Errors.begin(), analyzer.Errors.end());
+            Errors.insert(analyzer.Errors.begin(), analyzer.Errors.end());
             AllMains.insert(AllMains.end(), analyzer.AllMains.begin(), analyzer.AllMains.end());
         }
     } // TODO enums

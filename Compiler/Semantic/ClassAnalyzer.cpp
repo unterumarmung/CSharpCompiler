@@ -220,12 +220,17 @@ void ClassAnalyzer::AnalyzeMemberSignatures()
 {
     for (auto* method : CurrentClass->Members->Methods)
     {
+        method->Class = CurrentClass;
         method->AReturnType = ToDataType(method->Type);
         ValidateTypename(method->AReturnType);
         for (auto* var : method->Arguments->GetSeq())
             AnalyzeVarDecl(var);
     }
-    for (auto* field : CurrentClass->Members->Fields) { AnalyzeVarDecl(field->VarDecl, false); }
+    for (auto* field : CurrentClass->Members->Fields)
+    {
+        field->Class = CurrentClass;
+        AnalyzeVarDecl(field->VarDecl, false);
+    }
 }
 
 void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
@@ -412,7 +417,6 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 
 void ClassAnalyzer::AnalyzeField(FieldDeclNode* field)
 {
-    field->Class = CurrentClass;
     AnalyzeVarDecl(field->VarDecl);
     const auto& allFields = CurrentClass->Members->Fields;
     const auto fieldNameCount = std::count_if(allFields.begin(), allFields.end(), [&](auto* other)
@@ -525,7 +529,7 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(AccessExpr* expr)
                          "\' from static method with name \'" + std::string{ CurrentMethod->Identifier } + "\'");
         return;
     }
-
+    AnalyzeMethodAccessibility(*foundMethod);
     expr->ActualMethodCall = *foundMethod;
 }
 
@@ -570,8 +574,31 @@ void ClassAnalyzer::AnalyzeDotMethodCall(AccessExpr* expr)
                          ToString(callTypes));
         return;
     }
-
+    AnalyzeMethodAccessibility(*foundMethod);
     expr->ActualMethodCall = *foundMethod;
+}
+
+void ClassAnalyzer::AnalyzeFieldAccessibility(FieldDeclNode* field)
+{
+    const auto sameClass = field->Class == CurrentClass;
+    const auto isPublic = field->Visibility == VisibilityModifier::Public;
+
+    if (sameClass || isPublic)
+        return;
+    Errors.push_back("Cannot access " + ToString(field->Visibility) + " field " + std::string{
+                         field->VarDecl->Identifier
+                     } + " from class " + std::string{ CurrentClass->ClassName });
+}
+
+void ClassAnalyzer::AnalyzeMethodAccessibility(MethodDeclNode* method)
+{
+    const auto sameClass = method->Class == CurrentClass;
+    const auto isPublic = method->Visibility == VisibilityModifier::Public;
+
+    if (sameClass || isPublic)
+        return;
+    Errors.push_back("Cannot access " + ToString(method->Visibility) + " method " + std::string{ method->Identifier } +
+                     " from class " + std::string{ CurrentClass->ClassName });
 }
 
 auto IsIndexType(const DataType& data) -> bool { return data.AType == DataType::TypeT::Int && data.ArrayArity == 0; }
@@ -851,6 +878,7 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             return type;
         }
         access->ActualField = *foundField;
+        AnalyzeFieldAccessibility(access->ActualField);
         access->AType = access->ActualField->VarDecl->AType;
         return access->AType;
     }
@@ -887,6 +915,7 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
         {
             if (auto* var = CurrentClass->FindFieldByName(name); var)
             {
+                AnalyzeFieldAccessibility(var);
                 type = var->VarDecl->AType;
                 access->AType = type;
                 isVariableFound = true;

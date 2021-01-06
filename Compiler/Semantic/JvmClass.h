@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "../VisibilityModified.h"
+#include "../VisibilityModifier.h"
 
 struct Field
 {

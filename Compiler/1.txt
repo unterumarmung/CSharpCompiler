@@ -3,8 +3,8 @@ namespace A
     public class B
     {
 		public int a;
-
-		public void Foo()
+		private int b;
+		private void Foo()
 		{
 			System.Console Console = new System.Console;
 			a = 10;

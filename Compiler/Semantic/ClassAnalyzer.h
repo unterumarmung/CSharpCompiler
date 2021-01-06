@@ -223,9 +223,13 @@ struct ClassAnalyzer
 
     void AnalyzeDotMethodCall(ExprNode* node);
 
-    void AnalyzeSimpleMethodCall(AccessExpr* node);
+    void AnalyzeSimpleMethodCall(AccessExpr* expr);
 
-    void AnalyzeDotMethodCall(AccessExpr* node);
+    void AnalyzeDotMethodCall(AccessExpr* expr);
+
+    void AnalyzeFieldAccessibility(FieldDeclNode* field);
+
+    void AnalyzeMethodAccessibility(MethodDeclNode* method);
 
     void CalculateTypesForExpr(ExprNode* node);
 

@@ -62,7 +62,7 @@
     <ClInclude Include="Tree\Program.h" />
     <ClInclude Include="Tree\Stmt.h" />
     <ClInclude Include="Tree\Type.h" />
-    <ClInclude Include="VisibilityModified.h" />
+    <ClInclude Include="VisibilityModifier.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

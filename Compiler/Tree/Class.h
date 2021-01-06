@@ -5,25 +5,10 @@
 
 #include "Stmt.h"
 #include "Type.h"
-#include "../VisibilityModified.h"
+#include "../VisibilityModifier.h"
 
 
 struct ClassDeclNode;
-
-inline std::string_view ToString(VisibilityModifier modifier)
-{
-    switch (modifier)
-    {
-    case VisibilityModifier::Public:
-        return "public";
-    case VisibilityModifier::Protected:
-        return "protected";
-    case VisibilityModifier::Private:
-        return "private";
-    default:
-        return "unknown";
-    }
-}
 
 struct FieldDeclNode final : Node
 {

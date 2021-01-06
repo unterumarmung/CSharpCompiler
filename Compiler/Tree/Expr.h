@@ -3,6 +3,8 @@
 #include "Type.h"
 #include "../Semantic/JvmClass.h"
 #include <functional>
+
+struct FieldDeclNode;
 struct AccessExpr;
 struct ExprSeqNode;
 struct ClassDeclNode;
@@ -38,7 +40,8 @@ struct ExprNode final : Node
         Increment,
         Decrement,
         AssignOnArrayElement,
-        StandardArrayNew
+        StandardArrayNew,
+        AssignOnField
     } Type{};
 
     DataType AType;
@@ -61,6 +64,12 @@ struct ExprNode final : Node
     // For AssignOnArrayElement
     AccessExpr* ArrayExpr{};
     ExprNode* IndexExpr{};
+
+    // For AssignOnField
+    AccessExpr* ObjectExpr{};
+    FieldDeclNode* Field{};
+
+    // For AssignOnArrayElement && AssignOnField
     ExprNode* AssignExpr{};
 
     static ExprNode* FromBinaryExpression(TypeT type, ExprNode* lhs, ExprNode* rhs);
@@ -81,7 +90,9 @@ struct ExprNode final : Node
 
     [[nodiscard]] std::string_view Name() const noexcept override { return "Expr"; }
 
-    ExprNode* ToAssignOnArrayElement() const;
+    [[nodiscard]] ExprNode* ToAssignOnArrayElement() const;
+
+    [[nodiscard]] ExprNode* ToAssignOnField() const;
 
     void ApplyToAllChildren(const std::function<ExprNode*(ExprNode*)>& mapFunction);
 
@@ -224,6 +235,8 @@ inline std::string ToString(const ExprNode::TypeT type)
         return "[]=";
     case ExprNode::TypeT::StandardArrayNew:
         return "new[]";
+    case ExprNode::TypeT::AssignOnField:
+        return ".=";
     default: ;
     }
 }

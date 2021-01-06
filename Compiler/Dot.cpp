@@ -91,6 +91,8 @@ void ToDot(ExprSeqNode* node, std::ostream& out, Node* parent, const bool markNe
 
 void ToDot(AccessExpr* const node, std::ostream& out, const bool isType)
 {
+    if (!node)
+        return;
     const auto nameSuffix = isType
                                 ? ""
                                 : "\\nCalculated data type: " + ToString(node->AType);
@@ -229,6 +231,16 @@ void ToDot(ExprNode* const node, std::ostream& out)
         ToDot(node->AssignExpr, out);
         out << MakeConnection(node->Id, node->ArrayExpr->Id, "array");
         out << MakeConnection(node->Id, node->IndexExpr->Id, "index");
+        out << MakeConnection(node->Id, node->AssignExpr->Id, "assign");
+    }
+
+    if (node->Type == ExprNode::TypeT::AssignOnField)
+    {
+        if (node->ObjectExpr)
+            ToDot(node->ObjectExpr, out);
+        ToDot(node->AssignExpr, out);
+        if (node->ObjectExpr)
+            out << MakeConnection(node->Id, node->ObjectExpr->Id, "object");
         out << MakeConnection(node->Id, node->AssignExpr->Id, "assign");
     }
 }

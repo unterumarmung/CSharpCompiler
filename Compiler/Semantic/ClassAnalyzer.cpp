@@ -448,6 +448,12 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
         AnalyzeAccessExpr(expr->ArrayExpr);
     });
     CalculateTypesForExpr(changed);
+
+    changed = ReplaceAssignmentsOnField(expr);
+    changed->ApplyToAllChildren(ReplaceAssignmentsOnField);
+
+    CalculateTypesForExpr(changed);
+
     return changed;
 }
 
@@ -653,12 +659,41 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
     }
 
     const DataType boolType = { DataType::TypeT::Bool, {}, {}, {} };
+
+    if (node->Type == ExprNode::TypeT::Assign
+        || node->Type == ExprNode::TypeT::AssignOnArrayElement
+        || node->Type == ExprNode::TypeT::AssignOnField)
+    {
+        CalculateTypesForExpr(node->Left);
+        CalculateTypesForExpr(node->Right);
+        DataType leftType;
+        if (node->Type == ExprNode::TypeT::Assign)
+            leftType = node->Left->AType;
+        else if (node->Type == ExprNode::TypeT::AssignOnArrayElement)
+        {
+            leftType = node->ArrayExpr->AType;
+            leftType.ArrayArity--;
+        }
+        else { leftType = node->Field->VarDecl->AType; }
+        DataType rightType;
+        if (node->Type == ExprNode::TypeT::Assign) { rightType = node->Right->AType; }
+        else { rightType = node->AssignExpr->AType; }
+        if (leftType != rightType)
+        {
+            Errors.push_back("Types '" + ToString(leftType) + "' and '" + ToString(rightType) +
+                             "' are not compatible with operation " + ToString(node->Type));
+        }
+        else { node->AType = DataType::VoidType; }
+        return;
+    }
+
     if (IsBinary(node->Type))
     {
         CalculateTypesForExpr(node->Left);
         CalculateTypesForExpr(node->Right);
         const auto& leftType = node->Left->AType;
         const auto& rightType = node->Right->AType;
+
         if (IsLogical(node->Type))
         {
             node->AType = boolType;
@@ -881,6 +916,14 @@ ExprNode* ClassAnalyzer::ReplaceAssignmentsOnArrayElements(ExprNode* node)
     return node;
 }
 
+ExprNode* ClassAnalyzer::ReplaceAssignmentsOnField(ExprNode* node)
+{
+    auto* converted = node->ToAssignOnField();
+    if (converted)
+        return converted;
+    return node;
+}
+
 void ClassAnalyzer::ValidateTypename(DataType& dataType)
 {
     if (dataType.IsUnknown) { Errors.emplace_back("Cannot create object of unknown type"); }
@@ -1083,6 +1126,20 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
             }
             return bytes;
         }
+        if (expr->ActualField)
+        {
+            auto* const field = expr->ActualField;
+            Bytes objectBytes;
+            append(objectBytes, (uint8_t)Command::aload_0);
+            append(bytes, objectBytes);
+            append(bytes, (uint8_t)Command::getfield);
+
+            const auto fieldRefId = file.Constants.FindFieldRef(field->Class->ToDataType().ToTypename(),
+                                                                field->VarDecl->Identifier,
+                                                                field->VarDecl->AType.ToTypename());
+            append(bytes, ToBytes(fieldRefId));
+            return bytes;
+        }
         throw std::runtime_error{ "could not load " + std::string{ expr->Identifier } };
     }
     case AccessExpr::TypeT::SimpleMethodCall:
@@ -1096,14 +1153,29 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
         for (auto* arg : expr->Arguments->GetSeq()) { append(bytes, ToBytes(arg, file)); }
 
         const auto* method = expr->ActualMethodCall;
-        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToClassName(),
+        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToTypename(),
                                                                     method->Identifier, method->ToDescriptor());
         append(bytes, (uint8_t)Command::invokevirtual);
         append(bytes, ToBytes(methodRefConstant));
         return bytes;
     }
     case AccessExpr::TypeT::Dot:
-        break;
+    {
+        if (expr->ActualField)
+        {
+            Bytes bytes;
+            auto* const field = expr->ActualField;
+            Bytes objectBytes = ToBytes(expr->Previous, file);
+            append(bytes, objectBytes);
+            append(bytes, (uint8_t)Command::getfield);
+
+            const auto fieldRefId = file.Constants.FindFieldRef(field->Class->ToDataType().ToTypename(),
+                                                                field->VarDecl->Identifier,
+                                                                field->VarDecl->AType.ToTypename());
+            append(bytes, ToBytes(fieldRefId));
+            return bytes;
+        }
+    }
     case AccessExpr::TypeT::DotMethodCall:
     {
         Bytes bytes;
@@ -1114,7 +1186,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
         for (auto* arg : expr->Arguments->GetSeq()) { append(bytes, ToBytes(arg, file)); }
 
         const auto* method = expr->ActualMethodCall;
-        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToClassName(),
+        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToTypename(),
                                                                     method->Identifier, method->ToDescriptor());
         append(bytes, (uint8_t)Command::invokevirtual);
         append(bytes, ToBytes(methodRefConstant));
@@ -1198,7 +1270,7 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         // Загружаем false
         append(bytes, (uint8_t)Command::iconst_0);
         // Команда, которая ничего не делает.
-        // Добавил на всякий случай, чтобы всегда было куда пригать из goto
+        // Добавил на всякий случай, чтобы всегда было куда прыгать из goto
         append(bytes, (uint8_t)Command::nop);
 
         return bytes;
@@ -1213,10 +1285,7 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
             append(bytes, rightBytes);
             auto* var = expr->Left->Access->ActualVar;
             const auto variableNumberBytes = (uint8_t)(var->PositionInMethod);
-            if (var->AType.IsReferenceType())
-            {
-                append(bytes, (uint8_t)Command::astore);
-            }
+            if (var->AType.IsReferenceType()) { append(bytes, (uint8_t)Command::astore); }
             else if (var->AType == DataType::IntType || var->AType == DataType::BoolType)
             {
                 append(bytes, (uint8_t)Command::istore);
@@ -1283,14 +1352,14 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         const auto type = expr->AType;
         if (type.AType != DataType::TypeT::Complex && type.ArrayArity > 0)
             throw std::runtime_error{ "Cannot create object of type " + ToString(type) };
-        const auto classIdConstant = file.Constants.FindClass(type.ToClassName());
+        const auto classIdConstant = file.Constants.FindClass(type.ToTypename());
 
         Bytes bytes;
         append(bytes, (uint8_t)Command::new_);
         append(bytes, ToBytes(classIdConstant));
         append(bytes, (uint8_t)Command::dup);
 
-        const auto constructorRef = file.Constants.FindMethodRef(type.ToClassName(), "<init>", "()V");
+        const auto constructorRef = file.Constants.FindMethodRef(type.ToTypename(), "<init>", "()V");
         append(bytes, (uint8_t)Command::invokespecial);
         append(bytes, ToBytes(constructorRef));
 
@@ -1323,6 +1392,27 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
             append(bytes, (uint8_t)Command::iastore);
             return bytes;
         }
+    }
+
+    if (expr->Type == ExprNode::TypeT::AssignOnField)
+    {
+        Bytes bytes;
+
+        Bytes objectBytes;
+
+        if (expr->ObjectExpr) { objectBytes = ToBytes(expr->ObjectExpr, file); }
+        else { append(objectBytes, (uint8_t)Command::aload_0); }
+
+        auto* const field = expr->Field;
+        append(bytes, objectBytes);
+        append(bytes, ToBytes(expr->AssignExpr, file));
+
+        append(bytes, (uint8_t)Command::putfield);
+        const auto fieldRefId = file.Constants.FindFieldRef(field->Class->ToDataType().ToTypename(),
+                                                            field->VarDecl->Identifier,
+                                                            field->VarDecl->AType.ToTypename());
+        append(bytes, ToBytes(fieldRefId));
+        return bytes;
     }
 
     return {};
@@ -1436,7 +1526,7 @@ Bytes ToBytes(WhileNode* while_, ClassFile& file)
     append(bytes, ToBytes((int16_t)gotoBytesOffset));
 
     append(bytes, (uint8_t)Command::nop);
-   
+
     return bytes;
 }
 
@@ -1491,7 +1581,7 @@ Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
         append(codeBytes, (uint8_t)Command::aload_0);
         append(codeBytes, (uint8_t)Command::invokespecial);
         const auto javaBaseObjectConstructor = classFile.Constants.FindMethodRef(
-             JAVA_BASE_OBJECT.ToClassName(),
+             JAVA_BASE_OBJECT.ToTypename(),
              "<init>",
              "()V"
             );
@@ -1560,8 +1650,8 @@ void ClassAnalyzer::Generate()
 Bytes ClassAnalyzer::ToBytes()
 {
     Bytes bytes;
-    const auto classConstantId = File.Constants.FindClass(CurrentClass->ToDataType().ToClassName());
-    const auto superClassId = File.Constants.FindClass(JAVA_BASE_OBJECT.ToClassName());
+    const auto classConstantId = File.Constants.FindClass(CurrentClass->ToDataType().ToTypename());
+    const auto superClassId = File.Constants.FindClass(JAVA_BASE_OBJECT.ToTypename());
     const auto accessFlags = AccessFlags::Super | AccessFlags::Public;
     append(bytes, ::ToBytes((uint16_t)accessFlags));
     append(bytes, ::ToBytes(classConstantId));

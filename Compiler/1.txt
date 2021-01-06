@@ -2,55 +2,66 @@ namespace A
 {
     public class B
     {
+		public int a;
+
+		public void Foo()
+		{
+			System.Console Console = new System.Console;
+			a = 10;
+			Console.WriteLine(a);
+		}
+
 		public void Sort(int[] array, int length)
 		{
-			int outer = 0;
-			while (outer < length) 
-			{
-				int inner = 0;
-				while (inner < length - 1)
-				{
-					if (array[inner] > array[inner + 1]) 
-					{
-						int temp = array[inner];
-						array[inner] = array[inner + 1];
-						array[inner + 1] = temp;
-					}
-					inner = inner + 1;
-				}
-				outer = outer + 1;
-			}
+			// int outer = 0;
+			// while (outer < length) 
+			// {
+			// 	int inner = 0;
+			// 	while (inner < length - 1)
+			// 	{
+			// 		if (array[inner] > array[inner + 1]) 
+			// 		{
+			// 			int temp = array[inner];
+			// 			array[inner] = array[inner + 1];
+			// 			array[inner + 1] = temp;
+			// 		}
+			// 		inner = inner + 1;
+			// 	}
+			// 	outer = outer + 1;
+			// }
 		}
         static public void Main()
         {
 			System.Console Console = new System.Console;
 
-			Console.WriteLine("Enter array length: ");
+			// Console.WriteLine("Enter array length: ");
 
-			int arrayLength = Console.ReadInt();
+			// int arrayLength = Console.ReadInt();
 
-			int[] array = new int[arrayLength];
+			// int[] array = new int[arrayLength];
 
 
-			Console.WriteLine("Enter array: ");
-			int i = 0;
-			while (i < arrayLength)
-			{
-				array[i] = Console.ReadInt();
-				i = i + 1;
-			}
+			// Console.WriteLine("Enter array: ");
+			// int i = 0;
+			// while (i < arrayLength)
+			// {
+			// 	array[i] = Console.ReadInt();
+			// 	i = i + 1;
+			// }
 
 			B var = new B;
-			var.Sort(array, arrayLength);
+			// var.Sort(array, arrayLength);
+			var.Foo();
+			var.a = 255;
+			Console.WriteLine(var.a);
+			// Console.WriteLine("Array after sorting:");
 
-			Console.WriteLine("Array after sorting:");
-
-			i = 0;
-			while (i < arrayLength)
-			{
-				Console.WriteLine(array[i]);
-				i = i + 1;
-			}
+			// i = 0;
+			// while (i < arrayLength)
+			// {
+			// 	Console.WriteLine(array[i]);
+			// 	i = i + 1;
+			// }
         }
     }
 }

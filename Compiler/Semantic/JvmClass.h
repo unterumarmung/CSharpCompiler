@@ -92,12 +92,12 @@ struct DataType
         }
     }
 
-    [[nodiscard]] std::string ToClassName() const
+    [[nodiscard]] std::string ToTypename() const
     {
         if (AType != TypeT::Complex)
-            return "";
+            return ToDescriptor();
 
-        std::string value = "";
+        std::string value;
         for (auto const& part : ComplexType)
         {
             value += part;

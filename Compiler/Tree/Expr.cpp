@@ -1,5 +1,6 @@
 #include "Expr.h"
 #include "AccessExpr.h"
+#include "Class.h"
 
 ExprNode* ExprNode::FromBinaryExpression(TypeT type, ExprNode* lhs, ExprNode* rhs)
 {
@@ -81,7 +82,30 @@ ExprNode* ExprNode::ToAssignOnArrayElement() const
     assign->ArrayExpr = Left->Access->Previous;
     assign->IndexExpr = Left->Access->Child;
     assign->AssignExpr = Right;
+
+    assign->AType = DataType::VoidType;
+
     return assign;
+}
+
+ExprNode* ExprNode::ToAssignOnField() const
+{
+    const auto isAssignmentOnField =
+        Type == TypeT::Assign
+        && Left->Type == TypeT::AccessExpr
+        && Left->Access->ActualField != nullptr;
+    if (!isAssignmentOnField)
+        return nullptr;
+
+    auto* expr = new ExprNode;
+    expr->Type = TypeT::AssignOnField;
+    expr->ObjectExpr = Left->Access->Previous;
+    expr->AssignExpr = Right;
+    expr->Field = Left->Access->ActualField;
+
+    expr->AType = DataType::VoidType;
+
+    return expr;
 }
 
 void ExprNode::ApplyToAllChildren(const std::function<ExprNode*(ExprNode*)>& mapFunction)

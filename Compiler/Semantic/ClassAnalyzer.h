@@ -233,6 +233,8 @@ struct ClassAnalyzer
 
     static ExprNode* ReplaceAssignmentsOnArrayElements(ExprNode* node);
 
+    static ExprNode* ReplaceAssignmentsOnField(ExprNode* node);
+
     void ValidateTypename(DataType& dataType);
 
     [[nodiscard]] ClassDeclNode* FindClass(DataType const& dataType) const;

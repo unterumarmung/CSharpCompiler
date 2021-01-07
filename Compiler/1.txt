@@ -2,10 +2,11 @@ namespace A
 {
     public class B
     {
-		public void Foo(int a)
+		public static int operator+(int a, int b)
 		{
-
+			return 0;
 		}
+
         static public void Main()
         {
 			System.Console Console = new System.Console;

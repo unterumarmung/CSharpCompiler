@@ -422,7 +422,7 @@ void ToDot(MethodDeclNode* node, std::ostream& out)
 {
     const auto name = std::string{ node->Name() }
                       + "\\nVisibility: " + std::string{ ToString(node->Visibility) }
-                      + "\\nName: " + std::string{ node->Identifier };
+                      + "\\nName: " + node->Identifier();
     out << MakeNode(node->Id, name);
 
     if (node->Type)

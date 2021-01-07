@@ -91,7 +91,7 @@ extern struct Program* treeRoot;
 %type <_visibiltyModifier> visibility_modifier
 %type <_fieldDecl> field_decl
 %type <_methodArguments> method_arguments method_arguments_optional
-%type <_methodDecl> method_decl
+%type <_methodDecl> method_decl operator_overload
 %type <_classMembers> class_members class_members_optional
 %type <_classDecl> class_decl
 
@@ -154,6 +154,7 @@ extern struct Program* treeRoot;
 %token FOREACH
 %token IN_KW
 %token OBJECT
+%token OPERATOR
 
 %right '=' PLUS_ASSIGN MINUS_ASSIGN MULTIPLY_ASSIGN DIVISION_ASSIGN
 %left OR
@@ -301,20 +302,27 @@ visibility_modifier: PUBLIC         { $$ = VisibilityModifier::Public; }
                    | PRIVATE        { $$ = VisibilityModifier::Private; }
 ;
 
-method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'      { $$ = new MethodDeclNode($1, $2, $3, $5, $8); }
-           | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'   { $$ = new MethodDeclNode($1, nullptr, $3, $5, $8); }
-           | visibility_modifier STATIC VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'   { $$ = new MethodDeclNode($1, nullptr, $4, $6, $9, /* isStatic = */ true); }
-           | STATIC visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'   { $$ = new MethodDeclNode($2, nullptr, $4, $6, $9, /* isStatic = */ true); }
+operator_overload:    visibility_modifier STATIC type OPERATOR '+' '(' var_decl ',' var_decl ')' '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::Plus,       $7, $9, $12); }
+                    | visibility_modifier STATIC type OPERATOR '-' '(' var_decl ',' var_decl ')' '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::Minus,      $7, $9, $12); }
+                    | visibility_modifier STATIC type OPERATOR '*' '(' var_decl ',' var_decl ')' '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::Multiply,   $7, $9, $12); }
+                    | visibility_modifier STATIC type OPERATOR '/' '(' var_decl ',' var_decl ')' '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::Divide,     $7, $9, $12); }
+
+method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                { $$ = new MethodDeclNode($1, $2, $3, $5, $8); }
+           | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'             { $$ = new MethodDeclNode($1, nullptr, $3, $5, $8); }
+           | visibility_modifier STATIC VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'      { $$ = new MethodDeclNode($1, nullptr, $4, $6, $9, /* isStatic = */ true); }
+           | STATIC visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'      { $$ = new MethodDeclNode($2, nullptr, $4, $6, $9, /* isStatic = */ true); }
 ;
 
 field_decl: visibility_modifier var_decl ';'              { $$ = new FieldDeclNode($1, $2); }
           | visibility_modifier var_decl_with_init ';'    { $$ = new FieldDeclNode($1, $2); }
 ;
     
-class_members: method_decl                  { $$ = new ClassMembersNode(); $$ -> Add($1); }
-                | field_decl                { $$ = new ClassMembersNode(); $$ -> Add($1); }
-                | class_members method_decl { $$ -> Add($2); }
-                | class_members field_decl  { $$ -> Add($2); }
+class_members: method_decl                          { $$ = new ClassMembersNode(); $$ -> Add($1); }
+                | field_decl                        { $$ = new ClassMembersNode(); $$ -> Add($1); }
+                | operator_overload                 { $$ = new ClassMembersNode(); $$ -> Add($1); }
+                | class_members method_decl         { $$ -> Add($2); }
+                | class_members field_decl          { $$ -> Add($2); }
+                | class_members operator_overload   { $$ -> Add($2); }
 ;
 
 class_members_optional:                     { $$ = new ClassMembersNode(); }

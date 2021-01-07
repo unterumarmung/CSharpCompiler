@@ -349,7 +349,7 @@ namespace                               { return NAMESPACE; }
 new                                     { return NEW; } 
 null                                    { return NULL_KW; } 
 object                                  { return OBJECT; } 
-operator                                { PrintKeyword(yytext); } 
+operator                                { return OPERATOR; } 
 out                                     { PrintKeyword(yytext); } 
 override                                { PrintKeyword(yytext); } 
 params                                  { PrintKeyword(yytext); } 

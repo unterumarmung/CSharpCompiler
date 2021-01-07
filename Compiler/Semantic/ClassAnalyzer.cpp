@@ -257,7 +257,7 @@ void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
         if (foundVariable != methodVariables.end())
         {
             Errors.push_back("Variable with name '" + std::string{ varDecl->Identifier } +
-                             "' is already defined in method " + std::string{ CurrentMethod->Identifier });
+                             "' is already defined in method " + std::string{ CurrentMethod->Identifier() });
             return;
         }
         CurrentMethod->Variables.push_back(varDecl);
@@ -320,7 +320,7 @@ void ClassAnalyzer::AnalyzeReturn(StmtNode* node)
     if (node->Expr == nullptr && CurrentMethod->AReturnType != DataType::VoidType)
     {
         Errors.emplace_back("Cannot return empty expression in non-void method " + std::string{
-                                CurrentMethod->Identifier
+                                CurrentMethod->Identifier()
                             });
     }
     if (node->Expr && node->Expr->AType != CurrentMethod->AReturnType)
@@ -351,9 +351,8 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
     method->Class = CurrentClass;
     CurrentMethod = method;
 
-    if (CurrentMethod->IsStatic)
+    if (const auto isMain = CurrentMethod->Identifier() == "Main"; isMain && CurrentMethod->IsStatic)
     {
-        const auto isMain = CurrentMethod->Identifier == "Main";
         const auto noArguments = CurrentMethod->ArgumentDtos.empty();
         if (!isMain || !noArguments)
         {
@@ -361,9 +360,17 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
             return;
         }
         AllMains.push_back(method);
-        CurrentMethod->Identifier = "main";
+        CurrentMethod->_identifier = "main";
         // Локальная переменная args для мейна
         CurrentMethod->Variables.push_back(new VarDeclNode(nullptr, "", nullptr));
+    }
+
+    const auto canBeStatic = CurrentMethod->IsOperatorOverload || CurrentMethod->Identifier() == "main";
+
+    if (CurrentMethod->IsStatic && !canBeStatic)
+    {
+        Errors.emplace_back("Only Main method with no arguments and operator overloads can be static");
+        return;
     }
 
     if (!CurrentMethod->IsStatic)
@@ -377,7 +384,7 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
     const auto& allMethods = CurrentClass->Members->Methods;
     const auto sameMethodsCount = std::count_if(allMethods.begin(), allMethods.end(), [&](auto* otherMethod)
     {
-        return method->Identifier == otherMethod->Identifier &&
+        return method->Identifier() == otherMethod->Identifier() &&
                ToTypes(method->ArgumentDtos) ==
                ToTypes(otherMethod->ArgumentDtos);
     });
@@ -385,7 +392,7 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
     if (sameMethodsCount > 1)
     {
         Errors.push_back("Method with name "
-                         + std::string(method->Identifier)
+                         + method->Identifier()
                          + " and with arguments of types: "
                          + ToString(ToTypes(method->ArgumentDtos))
                          + " has been already defined");
@@ -393,9 +400,9 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 
     if (method->Body->GetSeq().empty() && method->AReturnType != DataType::VoidType)
     {
-        Errors.push_back("There must be return statement in non-void method with name " + std::string{
-                             method->Identifier
-                         });
+        Errors.push_back("There must be return statement in non-void method with name " +
+                         method->Identifier()
+                        );
         CurrentMethod = nullptr;
         return;
     }
@@ -405,11 +412,24 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 
     for (auto* stmt : method->Body->GetSeq()) { AnalyzeStmt(stmt); }
 
+    if (method->IsOperatorOverload)
+    {
+        const auto classDataType = CurrentClass->ToDataType();
+        const auto lhsDataType = method->Arguments->GetSeq()[0]->AType;
+        const auto rhsDataType = method->Arguments->GetSeq()[1]->AType;
+
+        if (classDataType != rhsDataType && classDataType != lhsDataType)
+        {
+            Errors.push_back("One of the parameters of a binary operator must be the containing type");
+            return;
+        }
+    }
+
     if (!method->Body->GetSeq().empty()
         && method->Body->GetSeq().back()->Type != StmtNode::TypeT::Return
         && method->AReturnType != DataType::VoidType)
     {
-        Errors.push_back("Last statement in method " + std::string{ method->Identifier } + " must be return!");
+        Errors.push_back("Last statement in method " + method->Identifier() + " must be return!");
     }
 
     CurrentMethod = nullptr;
@@ -512,7 +532,7 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(AccessExpr* expr)
     auto const& allMethods = CurrentClass->Members->Methods;
     const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
     {
-        return methodName == method->Identifier && callTypes ==
+        return methodName == method->Identifier() && callTypes ==
                ToTypes(method->ArgumentDtos) && !method->IsStatic;
     });
 
@@ -526,7 +546,7 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(AccessExpr* expr)
     if (CurrentMethod->IsStatic && !(*foundMethod)->IsStatic)
     {
         Errors.push_back("Cannot call non-static method with name \'" + std::string{ methodName } +
-                         "\' from static method with name \'" + std::string{ CurrentMethod->Identifier } + "\'");
+                         "\' from static method with name \'" + CurrentMethod->Identifier() + "\'");
         return;
     }
     AnalyzeMethodAccessibility(*foundMethod);
@@ -564,7 +584,7 @@ void ClassAnalyzer::AnalyzeDotMethodCall(AccessExpr* expr)
     auto const& allMethods = foundClass->Members->Methods;
     const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
     {
-        return methodName == method->Identifier && callTypes ==
+        return methodName == method->Identifier() && callTypes ==
                ToTypes(method->ArgumentDtos) && !method->IsStatic;
     });
 
@@ -597,7 +617,7 @@ void ClassAnalyzer::AnalyzeMethodAccessibility(MethodDeclNode* method)
 
     if (sameClass || isPublic)
         return;
-    Errors.push_back("Cannot access " + ToString(method->Visibility) + " method " + std::string{ method->Identifier } +
+    Errors.push_back("Cannot access " + ToString(method->Visibility) + " method " + method->Identifier() +
                      " from class " + std::string{ CurrentClass->ClassName });
 }
 
@@ -1034,8 +1054,10 @@ void ClassAnalyzer::FillTables(FieldDeclNode* field)
 
 void ClassAnalyzer::FillTables(MethodDeclNode* method)
 {
-    const auto nameId = File.Constants.FindUtf8(method->Identifier);
-    const auto methodDescriptor = method->Identifier == "main" && method->IsStatic
+    if (method->IsOperatorOverload)
+        return;
+    const auto nameId = File.Constants.FindUtf8(method->Identifier());
+    const auto methodDescriptor = method->Identifier() == "main" && method->IsStatic
                                       ? "([Ljava/lang/String;)V"
                                       : method->ToDescriptor();
 
@@ -1191,7 +1213,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
 
             const auto* method = expr->ActualMethodCall;
             const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToTypename(),
-                                                                        method->Identifier, method->ToDescriptor());
+                                                                        method->Identifier(), method->ToDescriptor());
             append(bytes, (uint8_t)Command::invokevirtual);
             append(bytes, ToBytes(methodRefConstant));
             return bytes;
@@ -1225,7 +1247,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
 
             const auto* method = expr->ActualMethodCall;
             const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToTypename(),
-                                                                        method->Identifier, method->ToDescriptor());
+                                                                        method->Identifier(), method->ToDescriptor());
             append(bytes, (uint8_t)Command::invokevirtual);
             append(bytes, ToBytes(methodRefConstant));
             return bytes;

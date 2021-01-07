@@ -453,7 +453,7 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
     });
     CalculateTypesForExpr(changed);
 
-    changed = ReplaceAssignmentsOnField(expr);
+    changed = ReplaceAssignmentsOnField(changed);
     changed->ApplyToAllChildren(ReplaceAssignmentsOnField);
 
     CalculateTypesForExpr(changed);
@@ -609,6 +609,32 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
     if (!node)
         return;
 
+    if (node->Type == ExprNode::TypeT::AssignOnArrayElement)
+    {
+        const auto dataTypeForArray = CalculateTypeForAccessExpr(node->ArrayExpr);
+        CalculateTypesForExpr(node->IndexExpr);
+        const auto indexType = node->IndexExpr->AType;
+        CalculateTypesForExpr(node->AssignExpr);
+        if (!IsIndexType(indexType))
+        {
+            Errors.push_back("Array index must be type int, not " + ToString(indexType));
+            return;
+        }
+
+        auto thisType = dataTypeForArray;
+        thisType.ArrayArity -= 1;
+
+        if (thisType != node->AssignExpr->AType)
+        {
+            Errors.push_back("Cannot assign value of type " + ToString(node->AssignExpr->AType) + " to value of type " +
+                             ToString(thisType));
+            return;
+        }
+
+        node->AType = thisType;
+        return;
+    }
+
     if (node->Type == ExprNode::TypeT::Cast)
     {
         const auto castType = ToDataType(node->StandardTypeChild);
@@ -694,13 +720,8 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         CalculateTypesForExpr(node->Left);
         CalculateTypesForExpr(node->Right);
         DataType leftType;
-        if (node->Type == ExprNode::TypeT::Assign)
-            leftType = node->Left->AType;
-        else if (node->Type == ExprNode::TypeT::AssignOnArrayElement)
-        {
-            leftType = node->ArrayExpr->AType;
-            leftType.ArrayArity--;
-        }
+        if (node->Type == ExprNode::TypeT::Assign) { leftType = node->Left->AType; }
+        else if (node->Type == ExprNode::TypeT::AssignOnArrayElement) { leftType = node->ArrayExpr->AType; }
         else { leftType = node->Field->VarDecl->AType; }
         DataType rightType;
         if (node->Type == ExprNode::TypeT::Assign) { rightType = node->Right->AType; }
@@ -757,31 +778,6 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         return;
     }
 
-    if (node->Type == ExprNode::TypeT::AssignOnArrayElement)
-    {
-        const auto dataTypeForArray = CalculateTypeForAccessExpr(node->ArrayExpr);
-        CalculateTypesForExpr(node->IndexExpr);
-        const auto indexType = node->IndexExpr->AType;
-        CalculateTypesForExpr(node->AssignExpr);
-        if (!IsIndexType(indexType))
-        {
-            Errors.push_back("Array index must be type int, not " + ToString(indexType));
-            return;
-        }
-
-        auto thisType = dataTypeForArray;
-        thisType.ArrayArity -= 1;
-
-        if (thisType != node->AssignExpr->AType)
-        {
-            Errors.push_back("Cannot assign value of type " + ToString(node->AssignExpr->AType) + " to value of type " +
-                             ToString(thisType));
-            return;
-        }
-
-        node->AType = thisType;
-        return;
-    }
 
     node->AType.IsUnknown = true;
 }
@@ -1083,12 +1079,18 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
         case AccessExpr::TypeT::ArrayElementExpr:
         {
             const auto arrayType = expr->Previous->AType;
-            if (arrayType.AType == DataType::TypeT::Int && arrayType.ArrayArity == 1)
+            const auto elementType = expr->AType;
+            if (elementType.IsPrimitiveType() && arrayType.ArrayArity == 1)
             {
                 Bytes bytes;
                 append(bytes, ToBytes(expr->Previous, file));
                 append(bytes, ToBytes(expr->Child, file));
-                append(bytes, (uint8_t)Command::iaload);
+                if (elementType == DataType::IntType)
+                    append(bytes, (uint8_t)Command::iaload);
+                else if (elementType == DataType::CharType)
+                    append(bytes, (uint8_t)Command::caload);
+                else if (elementType == DataType::BoolType)
+                    append(bytes, (uint8_t)Command::baload);
                 return bytes;
             }
             break;
@@ -1322,8 +1324,8 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
             auto* var = expr->Left->Access->ActualVar;
             const auto variableNumberBytes = (uint8_t)(var->PositionInMethod);
             if (var->AType.IsReferenceType()) { append(bytes, (uint8_t)Command::astore); }
-            else if (var->AType == DataType::IntType || var->AType == DataType::BoolType || var->AType ==
-                     DataType::CharType) { append(bytes, (uint8_t)Command::istore); }
+            else
+                if (var->AType.IsPrimitiveType()) { append(bytes, (uint8_t)Command::istore); }
 
             append(bytes, variableNumberBytes);
             return bytes;
@@ -1403,12 +1405,19 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
     if (expr->Type == ExprNode::TypeT::StandardArrayNew)
     {
         const auto type = expr->AType;
-        if (type.AType == DataType::TypeT::Int && type.ArrayArity == 1)
+        auto elementType = type;
+        elementType.ArrayArity = 0;
+        if (elementType.IsPrimitiveType() && type.ArrayArity == 1)
         {
             Bytes bytes;
             append(bytes, ToBytes(expr->Child, file));
             append(bytes, (uint8_t)Command::newarray);
-            append(bytes, (uint8_t)ArrayType::Int);
+            if (type.AType == DataType::TypeT::Int)
+                append(bytes, (uint8_t)ArrayType::Int);
+            else if (type.AType == DataType::TypeT::Char)
+                append(bytes, (uint8_t)ArrayType::Char);
+            else if (type.AType == DataType::TypeT::Bool)
+                append(bytes, (uint8_t)ArrayType::Boolean);
             return bytes;
         }
         throw std::runtime_error{ "Cannot create object of type " + ToString(type) };
@@ -1417,13 +1426,22 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
     if (expr->Type == ExprNode::TypeT::AssignOnArrayElement)
     {
         const auto arrayType = expr->ArrayExpr->AType;
-        if (arrayType.AType == DataType::TypeT::Int && arrayType.ArrayArity == 1)
+        auto elementType = arrayType;
+        elementType.ArrayArity--;
+        if (elementType.IsPrimitiveType()
+            && arrayType.ArrayArity == 1)
         {
             Bytes bytes;
             append(bytes, ToBytes(expr->ArrayExpr, file));
             append(bytes, ToBytes(expr->IndexExpr, file));
             append(bytes, ToBytes(expr->AssignExpr, file));
-            append(bytes, (uint8_t)Command::iastore);
+
+            if (elementType == DataType::IntType)
+                append(bytes, (uint8_t)Command::iastore);
+            else if (elementType == DataType::CharType)
+                append(bytes, (uint8_t)Command::castore);
+            else if (elementType == DataType::BoolType)
+                append(bytes, (uint8_t)Command::bastore);
             return bytes;
         }
     }
@@ -1460,18 +1478,12 @@ Bytes ToBytes(VarDeclNode* node, ClassFile& file)
     if (node->InitExpr) { append(bytes, ToBytes(node->InitExpr, file)); }
     else
     {
-        if (node->AType == DataType::IntType || node->AType == DataType::BoolType || node->AType == DataType::CharType)
-        {
-            append(bytes, (uint8_t)Command::iconst_0);
-        }
+        if (node->AType.IsPrimitiveType()) { append(bytes, (uint8_t)Command::iconst_0); }
         else if (node->AType.IsReferenceType()) { append(bytes, (uint8_t)Command::aconst_null); }
         else { throw std::runtime_error("unsupported type of variable " + ToString(node->AType)); }
     }
 
-    if (node->AType == DataType::IntType || node->AType == DataType::BoolType || node->AType == DataType::CharType)
-    {
-        append(bytes, (uint8_t)Command::istore);
-    }
+    if (node->AType.IsPrimitiveType()) { append(bytes, (uint8_t)Command::istore); }
     else
         if (node->AType.IsReferenceType()) { append(bytes, (uint8_t)Command::astore); }
 
@@ -1563,6 +1575,14 @@ Bytes ToBytes(WhileNode* while_, ClassFile& file)
     return bytes;
 }
 
+Bytes ToBytes(ForNode* for_, ClassFile& file)
+{
+    Bytes bytes;
+
+
+    return bytes;
+}
+
 Bytes ToBytes(StmtNode* stmt, ClassFile& file)
 {
     if (!stmt)
@@ -1580,7 +1600,7 @@ Bytes ToBytes(StmtNode* stmt, ClassFile& file)
         case StmtNode::TypeT::DoWhile:
             break;
         case StmtNode::TypeT::For:
-            break;
+            return ToBytes(stmt->For, file);
         case StmtNode::TypeT::Foreach:
             break;
         case StmtNode::TypeT::BlockStmt:
@@ -1668,11 +1688,10 @@ void ClassAnalyzer::Generate()
     out.write((char*)minorVersion.data(), minorVersion.size());
     const auto majorVersion = ::ToBytes(ClassFile::MajorVersion);
     out.write((char*)majorVersion.data(), majorVersion.size());
+
     auto const classBytes = this->ToBytes();
     auto const constantBytes = ::ToBytes(File.Constants);
     out.write((char*)constantBytes.data(), constantBytes.size());
-
-    auto position = out.tellp();
 
     out.write((char*)classBytes.data(), classBytes.size());
 
@@ -1779,9 +1798,6 @@ Bytes ToBytes(Constant const& constant)
             append(bytes, ToBytes(constant.ClassNameId));
             break;
         case Constant::TypeT::MethodRef:
-            append(bytes, ToBytes(constant.ClassId));
-            append(bytes, ToBytes(constant.NameAndTypeId));
-            break;
         case Constant::TypeT::FieldRef:
             append(bytes, ToBytes(constant.ClassId));
             append(bytes, ToBytes(constant.NameAndTypeId));

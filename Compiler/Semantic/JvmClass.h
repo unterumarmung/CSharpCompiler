@@ -112,6 +112,11 @@ struct DataType
     {
         return AType == TypeT::Complex || ArrayArity >= 1 || AType == TypeT::String;
     }
+
+    [[nodiscard]] bool IsPrimitiveType() const
+    {
+        return (AType == TypeT::Int || AType == TypeT::Char || AType == TypeT::Bool) && ArrayArity == 0;
+    }
 };
 
 inline std::string ToString(const DataType& data)

@@ -108,26 +108,26 @@ inline bool IsBinary(const ExprNode::TypeT type)
 {
     switch (type) // NOLINT(clang-diagnostic-switch-enum)
     {
-    case ExprNode::TypeT::BinPlus:
-    case ExprNode::TypeT::BinMinus:
-    case ExprNode::TypeT::Multiply:
-    case ExprNode::TypeT::Divide:
-    case ExprNode::TypeT::Assign:
-    case ExprNode::TypeT::Less:
-    case ExprNode::TypeT::Greater:
-    case ExprNode::TypeT::Equal:
-    case ExprNode::TypeT::NotEqual:
-    case ExprNode::TypeT::GreaterOrEqual:
-    case ExprNode::TypeT::LessOrEqual:
-    case ExprNode::TypeT::And:
-    case ExprNode::TypeT::Or:
-    case ExprNode::TypeT::Plus_assign:
-    case ExprNode::TypeT::Minus_assign:
-    case ExprNode::TypeT::Multiply_assign:
-    case ExprNode::TypeT::Division_assign:
-        return true;
-    default:
-        return false;
+        case ExprNode::TypeT::BinPlus:
+        case ExprNode::TypeT::BinMinus:
+        case ExprNode::TypeT::Multiply:
+        case ExprNode::TypeT::Divide:
+        case ExprNode::TypeT::Assign:
+        case ExprNode::TypeT::Less:
+        case ExprNode::TypeT::Greater:
+        case ExprNode::TypeT::Equal:
+        case ExprNode::TypeT::NotEqual:
+        case ExprNode::TypeT::GreaterOrEqual:
+        case ExprNode::TypeT::LessOrEqual:
+        case ExprNode::TypeT::And:
+        case ExprNode::TypeT::Or:
+        case ExprNode::TypeT::Plus_assign:
+        case ExprNode::TypeT::Minus_assign:
+        case ExprNode::TypeT::Multiply_assign:
+        case ExprNode::TypeT::Division_assign:
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -135,15 +135,15 @@ inline bool IsComparison(const ExprNode::TypeT type)
 {
     switch (type) // NOLINT(clang-diagnostic-switch-enum)
     {
-    case ExprNode::TypeT::Less:
-    case ExprNode::TypeT::Greater:
-    case ExprNode::TypeT::Equal:
-    case ExprNode::TypeT::NotEqual:
-    case ExprNode::TypeT::GreaterOrEqual:
-    case ExprNode::TypeT::LessOrEqual:
-        return true;
-    default:
-        return false;
+        case ExprNode::TypeT::Less:
+        case ExprNode::TypeT::Greater:
+        case ExprNode::TypeT::Equal:
+        case ExprNode::TypeT::NotEqual:
+        case ExprNode::TypeT::GreaterOrEqual:
+        case ExprNode::TypeT::LessOrEqual:
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -151,12 +151,12 @@ inline bool IsLogical(const ExprNode::TypeT type)
 {
     switch (type) // NOLINT(clang-diagnostic-switch-enum)
     {
-    case ExprNode::TypeT::And:
-    case ExprNode::TypeT::Or:
-    case ExprNode::TypeT::Not:
-        return true;
-    default:
-        return false;
+        case ExprNode::TypeT::And:
+        case ExprNode::TypeT::Or:
+        case ExprNode::TypeT::Not:
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -164,14 +164,14 @@ inline bool IsUnary(const ExprNode::TypeT type)
 {
     switch (type) // NOLINT(clang-diagnostic-switch-enum)
     {
-    case ExprNode::TypeT::Not:
-    case ExprNode::TypeT::UnaryMinus:
-    case ExprNode::TypeT::Cast:
-    case ExprNode::TypeT::Increment:
-    case ExprNode::TypeT::Decrement:
-        return true;
-    default:
-        return false;
+        case ExprNode::TypeT::Not:
+        case ExprNode::TypeT::UnaryMinus:
+        case ExprNode::TypeT::Cast:
+        case ExprNode::TypeT::Increment:
+        case ExprNode::TypeT::Decrement:
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -179,65 +179,65 @@ inline std::string ToString(const ExprNode::TypeT type)
 {
     switch (type)
     {
-    case ExprNode::TypeT::BinPlus:
-        return "+";
-    case ExprNode::TypeT::BinMinus:
-        return "-";
-    case ExprNode::TypeT::Multiply:
-        return "*";
-    case ExprNode::TypeT::Divide:
-        return "/";
-    case ExprNode::TypeT::Assign:
-        return "=";
-    case ExprNode::TypeT::Less:
-        return "<";
-    case ExprNode::TypeT::Greater:
-        return ">";
-    case ExprNode::TypeT::Equal:
-        return "==";
-    case ExprNode::TypeT::NotEqual:
-        return "!=";
-    case ExprNode::TypeT::GreaterOrEqual:
-        return ">=";
-    case ExprNode::TypeT::LessOrEqual:
-        return "<=";
-    case ExprNode::TypeT::And:
-        return "&&";
-    case ExprNode::TypeT::Or:
-        return "||";
-    case ExprNode::TypeT::Not:
-        return "!";
-    case ExprNode::TypeT::UnaryMinus:
-        return "-";
-    case ExprNode::TypeT::Null:
-        return "null";
-    case ExprNode::TypeT::SimpleNew:
-        return "new";
-    case ExprNode::TypeT::ArrayNew:
-        return "new[]";
-    case ExprNode::TypeT::AccessExpr:
-        return "AccessExpr";
-    case ExprNode::TypeT::Cast:
-        return "CastExpr";
-    case ExprNode::TypeT::Plus_assign:
-        return "+=";
-    case ExprNode::TypeT::Minus_assign:
-        return "-=";
-    case ExprNode::TypeT::Multiply_assign:
-        return "*=";
-    case ExprNode::TypeT::Division_assign:
-        return "/=";
-    case ExprNode::TypeT::Increment:
-        return "++";
-    case ExprNode::TypeT::Decrement:
-        return "--";
-    case ExprNode::TypeT::AssignOnArrayElement:
-        return "[]=";
-    case ExprNode::TypeT::StandardArrayNew:
-        return "new[]";
-    case ExprNode::TypeT::AssignOnField:
-        return ".=";
-    default: ;
+        case ExprNode::TypeT::BinPlus:
+            return "+";
+        case ExprNode::TypeT::BinMinus:
+            return "-";
+        case ExprNode::TypeT::Multiply:
+            return "*";
+        case ExprNode::TypeT::Divide:
+            return "/";
+        case ExprNode::TypeT::Assign:
+            return "=";
+        case ExprNode::TypeT::Less:
+            return "<";
+        case ExprNode::TypeT::Greater:
+            return ">";
+        case ExprNode::TypeT::Equal:
+            return "==";
+        case ExprNode::TypeT::NotEqual:
+            return "!=";
+        case ExprNode::TypeT::GreaterOrEqual:
+            return ">=";
+        case ExprNode::TypeT::LessOrEqual:
+            return "<=";
+        case ExprNode::TypeT::And:
+            return "&&";
+        case ExprNode::TypeT::Or:
+            return "||";
+        case ExprNode::TypeT::Not:
+            return "!";
+        case ExprNode::TypeT::UnaryMinus:
+            return "-";
+        case ExprNode::TypeT::Null:
+            return "null";
+        case ExprNode::TypeT::SimpleNew:
+            return "new";
+        case ExprNode::TypeT::ArrayNew:
+            return "new[]";
+        case ExprNode::TypeT::AccessExpr:
+            return "AccessExpr";
+        case ExprNode::TypeT::Cast:
+            return "CastExpr";
+        case ExprNode::TypeT::Plus_assign:
+            return "+=";
+        case ExprNode::TypeT::Minus_assign:
+            return "-=";
+        case ExprNode::TypeT::Multiply_assign:
+            return "*=";
+        case ExprNode::TypeT::Division_assign:
+            return "/=";
+        case ExprNode::TypeT::Increment:
+            return "++";
+        case ExprNode::TypeT::Decrement:
+            return "--";
+        case ExprNode::TypeT::AssignOnArrayElement:
+            return "[]=";
+        case ExprNode::TypeT::StandardArrayNew:
+            return "new[]";
+        case ExprNode::TypeT::AssignOnField:
+            return ".=";
+        default: ;
     }
 }
 

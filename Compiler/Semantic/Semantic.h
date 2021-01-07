@@ -82,11 +82,23 @@ struct Semantic
             return method;
         }();
 
+        auto* writeCharMethod = []
+        {
+            auto* arg = new VarDeclNode(new TypeNode(StandardType::Char), "arg", nullptr);
+            auto args = MethodArguments::MakeEmpty();
+            args->Add(arg);
+            auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "WriteLine", args, nullptr);
+            method->AReturnType = DataType::VoidType;
+            method->AnalyzeArguments();
+            return method;
+        }();
+
         auto* consoleClassMembers = new ClassMembersNode();
         consoleClassMembers->Methods.push_back(readIntMethod);
         consoleClassMembers->Methods.push_back(writeIntMethod);
         consoleClassMembers->Methods.push_back(writeStrMethod);
         consoleClassMembers->Methods.push_back(writeBoolMethod);
+        consoleClassMembers->Methods.push_back(writeCharMethod);
 
         auto* consoleClass = new ClassDeclNode("Console", nullptr, consoleClassMembers);
 
@@ -94,6 +106,7 @@ struct Semantic
         writeIntMethod->Class = consoleClass;
         writeBoolMethod->Class = consoleClass;
         writeStrMethod->Class = consoleClass;
+        writeCharMethod->Class = consoleClass;
 
         auto* systemMembers = new NamespaceMembersNode();
         systemMembers->Add(consoleClass);

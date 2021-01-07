@@ -131,12 +131,12 @@ inline AccessFlags ToAccessFlags(VisibilityModifier visibility, const bool isSta
 
     switch (visibility)
     {
-    case VisibilityModifier::Public:
-        return AccessFlags::Public;
-    case VisibilityModifier::Protected:
-        return AccessFlags::Protected;
-    case VisibilityModifier::Private:
-        return AccessFlags::Private;
+        case VisibilityModifier::Public:
+            return AccessFlags::Public;
+        case VisibilityModifier::Protected:
+            return AccessFlags::Protected;
+        case VisibilityModifier::Private:
+            return AccessFlags::Private;
     }
 
     return {};

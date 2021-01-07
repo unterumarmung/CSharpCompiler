@@ -11,21 +11,21 @@ bool operator==(const Constant& lhs, const Constant& rhs)
     if (lhs.Type != rhs.Type) { return false; }
     switch (lhs.Type)
     {
-    case Constant::TypeT::Utf8:
-        return lhs.Utf8 == rhs.Utf8;
-    case Constant::TypeT::Integer:
-        return lhs.Integer == rhs.Integer;
-    case Constant::TypeT::Float:
-        return lhs.Float == rhs.Float;
-    case Constant::TypeT::String:
-        return lhs.Utf8Id == rhs.Utf8Id;
-    case Constant::TypeT::Class:
-        return lhs.ClassNameId == rhs.ClassNameId;
-    case Constant::TypeT::NameAndType:
-        return lhs.NameId == rhs.NameId && lhs.TypeId == rhs.TypeId;
-    case Constant::TypeT::MethodRef:
-    case Constant::TypeT::FieldRef:
-        return lhs.NameAndTypeId == rhs.NameAndTypeId && lhs.ClassId == rhs.ClassId;
+        case Constant::TypeT::Utf8:
+            return lhs.Utf8 == rhs.Utf8;
+        case Constant::TypeT::Integer:
+            return lhs.Integer == rhs.Integer;
+        case Constant::TypeT::Float:
+            return lhs.Float == rhs.Float;
+        case Constant::TypeT::String:
+            return lhs.Utf8Id == rhs.Utf8Id;
+        case Constant::TypeT::Class:
+            return lhs.ClassNameId == rhs.ClassNameId;
+        case Constant::TypeT::NameAndType:
+            return lhs.NameId == rhs.NameId && lhs.TypeId == rhs.TypeId;
+        case Constant::TypeT::MethodRef:
+        case Constant::TypeT::FieldRef:
+            return lhs.NameAndTypeId == rhs.NameAndTypeId && lhs.ClassId == rhs.ClassId;
     }
     return false;
 }
@@ -793,144 +793,144 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
     // ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
     switch (access->Type) // NOLINT(clang-diagnostic-switch)
     {
-    case AccessExpr::TypeT::Integer:
-        type.AType = DataType::TypeT::Int;
-        access->AType = type;
-        return type;
-    case AccessExpr::TypeT::Bool:
-        type.AType = DataType::TypeT::Bool;
-        access->AType = type;
-        return type;
-    case AccessExpr::TypeT::String:
-        type.AType = DataType::TypeT::String;
-        access->AType = type;
-        return type;
-    case AccessExpr::TypeT::Char:
-        type.AType = DataType::TypeT::Char;
-        access->AType = type;
-        return type;
-    case AccessExpr::TypeT::Float:
-        type.AType = DataType::TypeT::Float;
-        access->AType = type;
-        return type;
-    case AccessExpr::TypeT::SimpleMethodCall:
-    {
-        if (access->ActualMethodCall)
-        {
-            type = access->ActualMethodCall->AReturnType;
-            access->AType = type;
-        }
-        else
-        {
-            type = { DataType::TypeT::Void, {}, true };
-            access->AType = type;
-        }
-        return type;
-    }
-
-    case AccessExpr::TypeT::ArrayElementExpr:
-    {
-        const auto dataTypeForPrevious = CalculateTypeForAccessExpr(access->Previous);
-        CalculateTypesForExpr(access->Child);
-        const auto childType = access->Child->AType;
-        if (!IsIndexType(childType))
-        {
-            Errors.push_back("Array index must be type int, not " + ToString(childType));
+        case AccessExpr::TypeT::Integer:
+            type.AType = DataType::TypeT::Int;
             access->AType = type;
             return type;
-        }
-        if (dataTypeForPrevious.ArrayArity == 0)
-        {
-            Errors.push_back("Cannot use operator[] on type " + ToString(dataTypeForPrevious));
+        case AccessExpr::TypeT::Bool:
+            type.AType = DataType::TypeT::Bool;
             access->AType = type;
             return type;
-        }
-        auto thisDataType = dataTypeForPrevious;
-        thisDataType.ArrayArity -= 1;
-        access->AType = thisDataType;
-        return thisDataType;
-    }
-    case AccessExpr::TypeT::Dot:
-    {
-        auto typeForPrevious = CalculateTypeForAccessExpr(access->Previous);
-        auto* foundClass = FindClass(typeForPrevious);
-        if (foundClass == nullptr)
-        {
-            Errors.push_back("No member " + std::string{
-                                 access->Identifier
-                             } + " in type " + ToString(typeForPrevious));
-            type.IsUnknown = true;
+        case AccessExpr::TypeT::String:
+            type.AType = DataType::TypeT::String;
             access->AType = type;
             return type;
-        }
-        auto const& fields = foundClass->Members->Fields;
-        const auto foundField = std::find_if(fields.begin(), fields.end(), [&](FieldDeclNode* field)
-        {
-            return field->VarDecl->Identifier == access->Identifier;
-        });
-        if (foundField == fields.end())
-        {
-            Errors.push_back("No member " + std::string{
-                                 access->Identifier
-                             } + " in type " + ToString(typeForPrevious));
-            type.IsUnknown = true;
+        case AccessExpr::TypeT::Char:
+            type.AType = DataType::TypeT::Char;
             access->AType = type;
             return type;
-        }
-        access->ActualField = *foundField;
-        AnalyzeFieldAccessibility(access->ActualField);
-        access->AType = access->ActualField->VarDecl->AType;
-        return access->AType;
-    }
-    case AccessExpr::TypeT::DotMethodCall:
-    {
-        if (access->ActualMethodCall)
-        {
-            type = access->ActualMethodCall->AReturnType;
+        case AccessExpr::TypeT::Float:
+            type.AType = DataType::TypeT::Float;
             access->AType = type;
-        }
-        else
+            return type;
+        case AccessExpr::TypeT::SimpleMethodCall:
         {
-            type = { DataType::TypeT::Void, {}, true };
-            access->AType = type;
-        }
-        return type;
-    }
-    case AccessExpr::TypeT::Identifier:
-    {
-        auto isVariableFound = false;
-        const auto name = std::string{ access->Identifier };
-        if (CurrentMethod)
-        {
-            if (auto* var = CurrentMethod->FindVariableByName(name); var)
+            if (access->ActualMethodCall)
             {
-                type = var->AType;
+                type = access->ActualMethodCall->AReturnType;
                 access->AType = type;
-                isVariableFound = true;
-                access->ActualVar = var;
             }
-        }
-
-        if (CurrentClass && !isVariableFound)
-        {
-            if (auto* var = CurrentClass->FindFieldByName(name); var)
+            else
             {
-                AnalyzeFieldAccessibility(var);
-                type = var->VarDecl->AType;
+                type = { DataType::TypeT::Void, {}, true };
                 access->AType = type;
-                isVariableFound = true;
-                access->ActualField = var;
             }
-        }
-
-        if (isVariableFound)
-        {
-            access->AType = type;
             return type;
         }
 
-        Errors.push_back("Variable with name \"" + name + "\" is not found");
-    }
+        case AccessExpr::TypeT::ArrayElementExpr:
+        {
+            const auto dataTypeForPrevious = CalculateTypeForAccessExpr(access->Previous);
+            CalculateTypesForExpr(access->Child);
+            const auto childType = access->Child->AType;
+            if (!IsIndexType(childType))
+            {
+                Errors.push_back("Array index must be type int, not " + ToString(childType));
+                access->AType = type;
+                return type;
+            }
+            if (dataTypeForPrevious.ArrayArity == 0)
+            {
+                Errors.push_back("Cannot use operator[] on type " + ToString(dataTypeForPrevious));
+                access->AType = type;
+                return type;
+            }
+            auto thisDataType = dataTypeForPrevious;
+            thisDataType.ArrayArity -= 1;
+            access->AType = thisDataType;
+            return thisDataType;
+        }
+        case AccessExpr::TypeT::Dot:
+        {
+            auto typeForPrevious = CalculateTypeForAccessExpr(access->Previous);
+            auto* foundClass = FindClass(typeForPrevious);
+            if (foundClass == nullptr)
+            {
+                Errors.push_back("No member " + std::string{
+                                     access->Identifier
+                                 } + " in type " + ToString(typeForPrevious));
+                type.IsUnknown = true;
+                access->AType = type;
+                return type;
+            }
+            auto const& fields = foundClass->Members->Fields;
+            const auto foundField = std::find_if(fields.begin(), fields.end(), [&](FieldDeclNode* field)
+            {
+                return field->VarDecl->Identifier == access->Identifier;
+            });
+            if (foundField == fields.end())
+            {
+                Errors.push_back("No member " + std::string{
+                                     access->Identifier
+                                 } + " in type " + ToString(typeForPrevious));
+                type.IsUnknown = true;
+                access->AType = type;
+                return type;
+            }
+            access->ActualField = *foundField;
+            AnalyzeFieldAccessibility(access->ActualField);
+            access->AType = access->ActualField->VarDecl->AType;
+            return access->AType;
+        }
+        case AccessExpr::TypeT::DotMethodCall:
+        {
+            if (access->ActualMethodCall)
+            {
+                type = access->ActualMethodCall->AReturnType;
+                access->AType = type;
+            }
+            else
+            {
+                type = { DataType::TypeT::Void, {}, true };
+                access->AType = type;
+            }
+            return type;
+        }
+        case AccessExpr::TypeT::Identifier:
+        {
+            auto isVariableFound = false;
+            const auto name = std::string{ access->Identifier };
+            if (CurrentMethod)
+            {
+                if (auto* var = CurrentMethod->FindVariableByName(name); var)
+                {
+                    type = var->AType;
+                    access->AType = type;
+                    isVariableFound = true;
+                    access->ActualVar = var;
+                }
+            }
+
+            if (CurrentClass && !isVariableFound)
+            {
+                if (auto* var = CurrentClass->FindFieldByName(name); var)
+                {
+                    AnalyzeFieldAccessibility(var);
+                    type = var->VarDecl->AType;
+                    access->AType = type;
+                    isVariableFound = true;
+                    access->ActualField = var;
+                }
+            }
+
+            if (isVariableFound)
+            {
+                access->AType = type;
+                return type;
+            }
+
+            Errors.push_back("Variable with name \"" + name + "\" is not found");
+        }
     }
     type.IsUnknown = true;
     access->AType = type;
@@ -1078,150 +1078,157 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
 {
     switch (expr->Type)
     {
-    case AccessExpr::TypeT::Expr:
-        return ToBytes(expr->Child, file);
-    case AccessExpr::TypeT::ArrayElementExpr:
-    {
-        const auto arrayType = expr->Previous->AType;
-        if (arrayType.AType == DataType::TypeT::Int && arrayType.ArrayArity == 1)
+        case AccessExpr::TypeT::Expr:
+            return ToBytes(expr->Child, file);
+        case AccessExpr::TypeT::ArrayElementExpr:
+        {
+            const auto arrayType = expr->Previous->AType;
+            if (arrayType.AType == DataType::TypeT::Int && arrayType.ArrayArity == 1)
+            {
+                Bytes bytes;
+                append(bytes, ToBytes(expr->Previous, file));
+                append(bytes, ToBytes(expr->Child, file));
+                append(bytes, (uint8_t)Command::iaload);
+                return bytes;
+            }
+            break;
+        }
+        case AccessExpr::TypeT::ComplexArrayType:
+            break;
+        case AccessExpr::TypeT::Integer:
         {
             Bytes bytes;
-            append(bytes, ToBytes(expr->Previous, file));
-            append(bytes, ToBytes(expr->Child, file));
-            append(bytes, (uint8_t)Command::iaload);
+            const auto intVal = expr->Integer;
+            if (intVal >= -32768 && intVal <= 32767)
+            {
+                const auto intBytes = ToBytes((IntT)intVal);
+                bytes.push_back((uint8_t)Command::sipush);
+                bytes.push_back(intBytes[2]);
+                bytes.push_back(intBytes[3]);
+            }
+            else
+            {
+                const auto constantId = file.Constants.FindInt(expr->Integer);
+                const auto constantIdBytes = ToBytes(constantId);
+                append(bytes, (uint8_t)Command::ldc_w);
+                append(bytes, constantIdBytes);
+            }
             return bytes;
         }
-        break;
-    }
-    case AccessExpr::TypeT::ComplexArrayType:
-        break;
-    case AccessExpr::TypeT::Integer:
-    {
-        Bytes bytes;
-        const auto intVal = expr->Integer;
-        if (intVal >= -32768 && intVal <= 32767)
+        case AccessExpr::TypeT::Float:
+            break;
+        case AccessExpr::TypeT::String:
         {
-            const auto intBytes = ToBytes((IntT)intVal);
-            bytes.push_back((uint8_t)Command::sipush);
-            bytes.push_back(intBytes[2]);
-            bytes.push_back(intBytes[3]);
-        }
-        else
-        {
-            const auto constantId = file.Constants.FindInt(expr->Integer);
+            Bytes bytes;
+            const auto constantId = file.Constants.FindString(expr->String);
             const auto constantIdBytes = ToBytes(constantId);
             append(bytes, (uint8_t)Command::ldc_w);
             append(bytes, constantIdBytes);
-        }
-        return bytes;
-    }
-    case AccessExpr::TypeT::Float:
-        break;
-    case AccessExpr::TypeT::String:
-    {
-        Bytes bytes;
-        const auto constantId = file.Constants.FindString(expr->String);
-        const auto constantIdBytes = ToBytes(constantId);
-        append(bytes, (uint8_t)Command::ldc_w);
-        append(bytes, constantIdBytes);
-        return bytes;
-    }
-    case AccessExpr::TypeT::Char:
-        break;
-    case AccessExpr::TypeT::Bool:
-    {
-        Bytes bytes;
-        if (expr->Bool)
-            append(bytes, (uint8_t)Command::iconst_1);
-        else
-            append(bytes, (uint8_t)Command::iconst_0);
-        return bytes;
-    }
-    case AccessExpr::TypeT::Identifier:
-    {
-        Bytes bytes;
-        if (expr->ActualVar)
-        {
-            auto* const var = expr->ActualVar;
-            if (var->AType == DataType::IntType || var->AType == DataType::BoolType)
-            {
-                append(bytes, (uint8_t)Command::iload);
-                append(bytes, (uint8_t)var->PositionInMethod);
-            }
-            if (var->AType.AType == DataType::TypeT::Complex || var->AType.ArrayArity >= 1)
-            {
-                append(bytes, (uint8_t)Command::aload);
-                append(bytes, (uint8_t)var->PositionInMethod);
-            }
             return bytes;
         }
-        if (expr->ActualField)
-        {
-            auto* const field = expr->ActualField;
-            Bytes objectBytes;
-            append(objectBytes, (uint8_t)Command::aload_0);
-            append(bytes, objectBytes);
-            append(bytes, (uint8_t)Command::getfield);
-
-            const auto fieldRefId = file.Constants.FindFieldRef(field->Class->ToDataType().ToTypename(),
-                                                                field->VarDecl->Identifier,
-                                                                field->VarDecl->AType.ToTypename());
-            append(bytes, ToBytes(fieldRefId));
-            return bytes;
-        }
-        throw std::runtime_error{ "could not load " + std::string{ expr->Identifier } };
-    }
-    case AccessExpr::TypeT::SimpleMethodCall:
-    {
-        Bytes bytes;
-
-        // Загрузка this на стек
-        append(bytes, (uint8_t)Command::aload_0);
-
-        // Загрузка аргументов на стек
-        for (auto* arg : expr->Arguments->GetSeq()) { append(bytes, ToBytes(arg, file)); }
-
-        const auto* method = expr->ActualMethodCall;
-        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToTypename(),
-                                                                    method->Identifier, method->ToDescriptor());
-        append(bytes, (uint8_t)Command::invokevirtual);
-        append(bytes, ToBytes(methodRefConstant));
-        return bytes;
-    }
-    case AccessExpr::TypeT::Dot:
-    {
-        if (expr->ActualField)
+        case AccessExpr::TypeT::Char:
         {
             Bytes bytes;
-            auto* const field = expr->ActualField;
-            Bytes objectBytes = ToBytes(expr->Previous, file);
-            append(bytes, objectBytes);
-            append(bytes, (uint8_t)Command::getfield);
-
-            const auto fieldRefId = file.Constants.FindFieldRef(field->Class->ToDataType().ToTypename(),
-                                                                field->VarDecl->Identifier,
-                                                                field->VarDecl->AType.ToTypename());
-            append(bytes, ToBytes(fieldRefId));
+            append(bytes, (uint8_t)Command::bipush);
+            append(bytes, expr->Char);
             return bytes;
         }
-    }
-    case AccessExpr::TypeT::DotMethodCall:
-    {
-        Bytes bytes;
-        // Загрузка выражения слева от точки
-        append(bytes, ToBytes(expr->Previous, file));
+        case AccessExpr::TypeT::Bool:
+        {
+            Bytes bytes;
+            if (expr->Bool)
+                append(bytes, (uint8_t)Command::iconst_1);
+            else
+                append(bytes, (uint8_t)Command::iconst_0);
+            return bytes;
+        }
+        case AccessExpr::TypeT::Identifier:
+        {
+            Bytes bytes;
+            if (expr->ActualVar)
+            {
+                auto* const var = expr->ActualVar;
+                if (var->AType == DataType::IntType || var->AType == DataType::BoolType || var->AType ==
+                    DataType::CharType)
+                {
+                    append(bytes, (uint8_t)Command::iload);
+                    append(bytes, (uint8_t)var->PositionInMethod);
+                }
+                if (var->AType.IsReferenceType())
+                {
+                    append(bytes, (uint8_t)Command::aload);
+                    append(bytes, (uint8_t)var->PositionInMethod);
+                }
+                return bytes;
+            }
+            if (expr->ActualField)
+            {
+                auto* const field = expr->ActualField;
+                Bytes objectBytes;
+                append(objectBytes, (uint8_t)Command::aload_0);
+                append(bytes, objectBytes);
+                append(bytes, (uint8_t)Command::getfield);
 
-        // Загрузка аргументов на стек
-        for (auto* arg : expr->Arguments->GetSeq()) { append(bytes, ToBytes(arg, file)); }
+                const auto fieldRefId = file.Constants.FindFieldRef(field->Class->ToDataType().ToTypename(),
+                                                                    field->VarDecl->Identifier,
+                                                                    field->VarDecl->AType.ToTypename());
+                append(bytes, ToBytes(fieldRefId));
+                return bytes;
+            }
+            throw std::runtime_error{ "could not load " + std::string{ expr->Identifier } };
+        }
+        case AccessExpr::TypeT::SimpleMethodCall:
+        {
+            Bytes bytes;
 
-        const auto* method = expr->ActualMethodCall;
-        const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToTypename(),
-                                                                    method->Identifier, method->ToDescriptor());
-        append(bytes, (uint8_t)Command::invokevirtual);
-        append(bytes, ToBytes(methodRefConstant));
-        return bytes;
-    }
-    default: ;
+            // Загрузка this на стек
+            append(bytes, (uint8_t)Command::aload_0);
+
+            // Загрузка аргументов на стек
+            for (auto* arg : expr->Arguments->GetSeq()) { append(bytes, ToBytes(arg, file)); }
+
+            const auto* method = expr->ActualMethodCall;
+            const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToTypename(),
+                                                                        method->Identifier, method->ToDescriptor());
+            append(bytes, (uint8_t)Command::invokevirtual);
+            append(bytes, ToBytes(methodRefConstant));
+            return bytes;
+        }
+        case AccessExpr::TypeT::Dot:
+        {
+            if (expr->ActualField)
+            {
+                Bytes bytes;
+                auto* const field = expr->ActualField;
+                Bytes objectBytes = ToBytes(expr->Previous, file);
+                append(bytes, objectBytes);
+                append(bytes, (uint8_t)Command::getfield);
+
+                const auto fieldRefId = file.Constants.FindFieldRef(field->Class->ToDataType().ToTypename(),
+                                                                    field->VarDecl->Identifier,
+                                                                    field->VarDecl->AType.ToTypename());
+                append(bytes, ToBytes(fieldRefId));
+                return bytes;
+            }
+            break;
+        }
+        case AccessExpr::TypeT::DotMethodCall:
+        {
+            Bytes bytes;
+            // Загрузка выражения слева от точки
+            append(bytes, ToBytes(expr->Previous, file));
+
+            // Загрузка аргументов на стек
+            for (auto* arg : expr->Arguments->GetSeq()) { append(bytes, ToBytes(arg, file)); }
+
+            const auto* method = expr->ActualMethodCall;
+            const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToTypename(),
+                                                                        method->Identifier, method->ToDescriptor());
+            append(bytes, (uint8_t)Command::invokevirtual);
+            append(bytes, ToBytes(methodRefConstant));
+            return bytes;
+        }
+        default: ;
     }
     return {};
 }
@@ -1263,28 +1270,28 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         // ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
         switch (expr->Type)
         {
-            // NOLINT(clang-diagnostic-switch)
-        case ExprNode::TypeT::Less:
-            command = Command::if_icmpge;
-            break;
-        case ExprNode::TypeT::Greater:
-            command = Command::if_icmple;
-            break;
-        case ExprNode::TypeT::Equal:
-            command = Command::if_icmpne;
-            break;
-        case ExprNode::TypeT::NotEqual:
-            command = Command::if_icmpeq;
-            break;
-        case ExprNode::TypeT::GreaterOrEqual:
-            command = Command::if_icmplt;
-            break;
-        case ExprNode::TypeT::LessOrEqual:
-            command = Command::if_icmpgt;
-            break;
-        case ExprNode::TypeT::Not:
-            command = Command::ifne;
-            break;
+                // NOLINT(clang-diagnostic-switch)
+            case ExprNode::TypeT::Less:
+                command = Command::if_icmpge;
+                break;
+            case ExprNode::TypeT::Greater:
+                command = Command::if_icmple;
+                break;
+            case ExprNode::TypeT::Equal:
+                command = Command::if_icmpne;
+                break;
+            case ExprNode::TypeT::NotEqual:
+                command = Command::if_icmpeq;
+                break;
+            case ExprNode::TypeT::GreaterOrEqual:
+                command = Command::if_icmplt;
+                break;
+            case ExprNode::TypeT::LessOrEqual:
+                command = Command::if_icmpgt;
+                break;
+            case ExprNode::TypeT::Not:
+                command = Command::ifne;
+                break;
         }
 
         append(bytes, (uint8_t)command);
@@ -1315,10 +1322,8 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
             auto* var = expr->Left->Access->ActualVar;
             const auto variableNumberBytes = (uint8_t)(var->PositionInMethod);
             if (var->AType.IsReferenceType()) { append(bytes, (uint8_t)Command::astore); }
-            else if (var->AType == DataType::IntType || var->AType == DataType::BoolType)
-            {
-                append(bytes, (uint8_t)Command::istore);
-            }
+            else if (var->AType == DataType::IntType || var->AType == DataType::BoolType || var->AType ==
+                     DataType::CharType) { append(bytes, (uint8_t)Command::istore); }
 
             append(bytes, variableNumberBytes);
             return bytes;
@@ -1336,21 +1341,21 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         if (expr->AType != DataType::IntType) { throw std::runtime_error{ "Only ints are supported" }; }
         switch (expr->Type) // NOLINT(clang-diagnostic-switch-enum)
         {
-        case ExprNode::TypeT::BinPlus:
-            append(bytes, (uint8_t)Command::iadd);
-            break;
-        case ExprNode::TypeT::BinMinus:
-            append(bytes, (uint8_t)Command::isub);
-            break;
-        case ExprNode::TypeT::Multiply:
-            append(bytes, (uint8_t)Command::imul);
-            break;
-        case ExprNode::TypeT::Divide:
-            append(bytes, (uint8_t)Command::idiv);
-            break;
+            case ExprNode::TypeT::BinPlus:
+                append(bytes, (uint8_t)Command::iadd);
+                break;
+            case ExprNode::TypeT::BinMinus:
+                append(bytes, (uint8_t)Command::isub);
+                break;
+            case ExprNode::TypeT::Multiply:
+                append(bytes, (uint8_t)Command::imul);
+                break;
+            case ExprNode::TypeT::Divide:
+                append(bytes, (uint8_t)Command::idiv);
+                break;
 
-        default:
-            throw std::runtime_error{ "Not supported" };
+            default:
+                throw std::runtime_error{ "Not supported" };
         }
         return bytes;
     }
@@ -1362,13 +1367,13 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         append(bytes, childBytes);
         switch (expr->Type)
         {
-        case ExprNode::TypeT::UnaryMinus:
-        {
-            append(bytes, (uint8_t)Command::ineg);
-            break;
-        }
-        default:
-            throw std::runtime_error{ "Not supported operation " + ToString(expr->Type) };
+            case ExprNode::TypeT::UnaryMinus:
+            {
+                append(bytes, (uint8_t)Command::ineg);
+                break;
+            }
+            default:
+                throw std::runtime_error{ "Not supported operation " + ToString(expr->Type) };
         }
 
         return bytes;
@@ -1455,21 +1460,20 @@ Bytes ToBytes(VarDeclNode* node, ClassFile& file)
     if (node->InitExpr) { append(bytes, ToBytes(node->InitExpr, file)); }
     else
     {
-        if (node->AType == DataType::IntType || node->AType == DataType::BoolType)
+        if (node->AType == DataType::IntType || node->AType == DataType::BoolType || node->AType == DataType::CharType)
         {
             append(bytes, (uint8_t)Command::iconst_0);
         }
-        else if (node->AType.AType == DataType::TypeT::Complex) { append(bytes, (uint8_t)Command::aconst_null); }
+        else if (node->AType.IsReferenceType()) { append(bytes, (uint8_t)Command::aconst_null); }
         else { throw std::runtime_error("unsupported type of variable " + ToString(node->AType)); }
     }
 
-    if (node->AType == DataType::IntType || node->AType == DataType::BoolType)
+    if (node->AType == DataType::IntType || node->AType == DataType::BoolType || node->AType == DataType::CharType)
     {
         append(bytes, (uint8_t)Command::istore);
     }
-    else if (node->AType.AType == DataType::TypeT::Complex) { append(bytes, (uint8_t)Command::astore); }
     else
-        if (node->AType.ArrayArity >= 1) { append(bytes, (uint8_t)Command::astore); }
+        if (node->AType.IsReferenceType()) { append(bytes, (uint8_t)Command::astore); }
 
     append(bytes, (uint8_t)node->PositionInMethod);
 
@@ -1567,27 +1571,27 @@ Bytes ToBytes(StmtNode* stmt, ClassFile& file)
 
     switch (stmt->Type)
     {
-    case StmtNode::TypeT::Empty:
-        return bytes;
-    case StmtNode::TypeT::VarDecl:
-        return ToBytes(stmt->VarDecl, file);
-    case StmtNode::TypeT::While:
-        return ToBytes(stmt->While, file);
-    case StmtNode::TypeT::DoWhile:
-        break;
-    case StmtNode::TypeT::For:
-        break;
-    case StmtNode::TypeT::Foreach:
-        break;
-    case StmtNode::TypeT::BlockStmt:
-        return ToBytes(stmt->Block, file);
-    case StmtNode::TypeT::IfStmt:
-        return ToBytes(stmt->If, file);
-    case StmtNode::TypeT::Return:
-        return ReturnToBytes(stmt->Expr, file);
-    case StmtNode::TypeT::ExprStmt:
-        return ToBytes(stmt->Expr, file);
-    default: ;
+        case StmtNode::TypeT::Empty:
+            return bytes;
+        case StmtNode::TypeT::VarDecl:
+            return ToBytes(stmt->VarDecl, file);
+        case StmtNode::TypeT::While:
+            return ToBytes(stmt->While, file);
+        case StmtNode::TypeT::DoWhile:
+            break;
+        case StmtNode::TypeT::For:
+            break;
+        case StmtNode::TypeT::Foreach:
+            break;
+        case StmtNode::TypeT::BlockStmt:
+            return ToBytes(stmt->Block, file);
+        case StmtNode::TypeT::IfStmt:
+            return ToBytes(stmt->If, file);
+        case StmtNode::TypeT::Return:
+            return ReturnToBytes(stmt->Expr, file);
+        case StmtNode::TypeT::ExprStmt:
+            return ToBytes(stmt->Expr, file);
+        default: ;
     }
     return {};
 }
@@ -1755,34 +1759,34 @@ Bytes ToBytes(Constant const& constant)
     append(bytes, static_cast<uint8_t>(constant.Type));
     switch (constant.Type)
     {
-    case Constant::TypeT::Utf8:
-        append(bytes, ToBytes((uint16_t)constant.Utf8.size()));
-        append(bytes, constant.Utf8);
-        break;
-    case Constant::TypeT::Integer:
-        append(bytes, ToBytes(constant.Integer));
-        break;
-    case Constant::TypeT::Float:
-        throw std::runtime_error{ "Float is not supported" };
-    case Constant::TypeT::String:
-        append(bytes, ToBytes(constant.Utf8Id));
-        break;
-    case Constant::TypeT::NameAndType:
-        append(bytes, ToBytes(constant.NameId));
-        append(bytes, ToBytes(constant.TypeId));
-        break;
-    case Constant::TypeT::Class:
-        append(bytes, ToBytes(constant.ClassNameId));
-        break;
-    case Constant::TypeT::MethodRef:
-        append(bytes, ToBytes(constant.ClassId));
-        append(bytes, ToBytes(constant.NameAndTypeId));
-        break;
-    case Constant::TypeT::FieldRef:
-        append(bytes, ToBytes(constant.ClassId));
-        append(bytes, ToBytes(constant.NameAndTypeId));
-        break;
-    default: ;
+        case Constant::TypeT::Utf8:
+            append(bytes, ToBytes((uint16_t)constant.Utf8.size()));
+            append(bytes, constant.Utf8);
+            break;
+        case Constant::TypeT::Integer:
+            append(bytes, ToBytes(constant.Integer));
+            break;
+        case Constant::TypeT::Float:
+            throw std::runtime_error{ "Float is not supported" };
+        case Constant::TypeT::String:
+            append(bytes, ToBytes(constant.Utf8Id));
+            break;
+        case Constant::TypeT::NameAndType:
+            append(bytes, ToBytes(constant.NameId));
+            append(bytes, ToBytes(constant.TypeId));
+            break;
+        case Constant::TypeT::Class:
+            append(bytes, ToBytes(constant.ClassNameId));
+            break;
+        case Constant::TypeT::MethodRef:
+            append(bytes, ToBytes(constant.ClassId));
+            append(bytes, ToBytes(constant.NameAndTypeId));
+            break;
+        case Constant::TypeT::FieldRef:
+            append(bytes, ToBytes(constant.ClassId));
+            append(bytes, ToBytes(constant.NameAndTypeId));
+            break;
+        default: ;
     }
     return bytes;
 }

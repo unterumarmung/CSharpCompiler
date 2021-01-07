@@ -39,6 +39,7 @@ struct DataType
     static const DataType VoidType;
     static const DataType BoolType;
     static const DataType IntType;
+    static const DataType CharType;
 
     int ArrayArity = 0;
 
@@ -66,29 +67,29 @@ struct DataType
         }
         switch (AType)
         {
-        case TypeT::Char:
-            return "C";
-        case TypeT::Int:
-            return "I";
-        case TypeT::Bool:
-            return "Z";
-        case TypeT::Float:
-            return "F";
-        case TypeT::String:
-            return "Ljava/lang/String;";
-        case TypeT::Complex:
-        {
-            std::string value = "L";
-            for (auto const& part : ComplexType)
+            case TypeT::Char:
+                return "C";
+            case TypeT::Int:
+                return "I";
+            case TypeT::Bool:
+                return "Z";
+            case TypeT::Float:
+                return "F";
+            case TypeT::String:
+                return "Ljava/lang/String;";
+            case TypeT::Complex:
             {
-                value += part;
-                value += '/';
+                std::string value = "L";
+                for (auto const& part : ComplexType)
+                {
+                    value += part;
+                    value += '/';
+                }
+                value.back() = ';';
+                return value;
             }
-            value.back() = ';';
-            return value;
-        }
-        case TypeT::Void:
-            return "V";
+            case TypeT::Void:
+                return "V";
         }
     }
 
@@ -107,10 +108,13 @@ struct DataType
         return value;
     }
 
-    [[nodiscard]] bool IsReferenceType() const { return AType == TypeT::Complex || ArrayArity >= 1; }
+    [[nodiscard]] bool IsReferenceType() const
+    {
+        return AType == TypeT::Complex || ArrayArity >= 1 || AType == TypeT::String;
+    }
 };
 
-inline std::string ToString(DataType data)
+inline std::string ToString(const DataType& data)
 {
     if (data.IsUnknown)
         return "unknown";
@@ -125,29 +129,29 @@ inline std::string ToString(DataType data)
     }
     switch (data.AType)
     {
-    case DataType::TypeT::Char:
-        return "char";
-    case DataType::TypeT::Bool:
-        return "bool";
-    case DataType::TypeT::Int:
-        return "int";
-    case DataType::TypeT::Float:
-        return "float";
-    case DataType::TypeT::String:
-        return "string";
-    case DataType::TypeT::Complex:
-    {
-        std::string fullName;
-        for (auto const& namePart : data.ComplexType)
+        case DataType::TypeT::Char:
+            return "char";
+        case DataType::TypeT::Bool:
+            return "bool";
+        case DataType::TypeT::Int:
+            return "int";
+        case DataType::TypeT::Float:
+            return "float";
+        case DataType::TypeT::String:
+            return "string";
+        case DataType::TypeT::Complex:
         {
-            fullName += namePart;
-            fullName += '.';
+            std::string fullName;
+            for (auto const& namePart : data.ComplexType)
+            {
+                fullName += namePart;
+                fullName += '.';
+            }
+            fullName.pop_back();
+            return fullName;
         }
-        fullName.pop_back();
-        return fullName;
-    }
-    case DataType::TypeT::Void:
-        return "void";
+        case DataType::TypeT::Void:
+            return "void";
     }
 }
 

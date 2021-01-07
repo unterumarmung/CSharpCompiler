@@ -11,6 +11,13 @@ namespace A
 			Console.WriteLine(a);
 		}
 
+		public void Foo(char a)
+		{
+			System.Console Console = new System.Console;
+			a = 'b';
+			Console.WriteLine(a);
+		}
+
 		public void Sort(int[] array, int length)
 		{
 			// int outer = 0;
@@ -56,6 +63,11 @@ namespace A
 			Console.WriteLine(var.a);
 			// Console.WriteLine("Array after sorting:");
 
+			var.Foo('a');
+
+			string str = "Hello, world";
+			str = "Hi!";
+			Console.WriteLine(str);	
 			// i = 0;
 			// while (i < arrayLength)
 			// {

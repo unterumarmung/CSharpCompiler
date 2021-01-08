@@ -148,6 +148,11 @@ void ToDot(AccessExpr* const node, std::ostream& out, const bool isType)
             ToDot(node->Previous, out);
             out << MakeConnection(node->Id, node->Previous->Id, "call expr");
             ToDot(node->Arguments, out, node, true, "argument");
+        case AccessExpr::TypeT::ArrayLength:
+            out << MakeNode(node->Id, "Get Array Length");
+            ToDot(node->Previous, out);
+            out << MakeConnection(node->Id, node->Previous->Id);
+        default: ;
     }
 }
 

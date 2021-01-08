@@ -934,6 +934,12 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
         case AccessExpr::TypeT::Dot:
         {
             auto typeForPrevious = CalculateTypeForAccessExpr(access->Previous);
+            if (typeForPrevious.ArrayArity >=1 && access->Identifier == "Length")
+            {
+                access->Type = AccessExpr::TypeT::ArrayLength;
+                access->AType = DataType::IntType;
+                return access->AType;
+            }
             auto* foundClass = FindClass(typeForPrevious);
             if (foundClass == nullptr)
             {
@@ -1017,6 +1023,10 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
         {
             CalculateTypesForExpr(access->Child);
             access->AType = access->Child->AType;
+            return access->AType;
+        }
+        case AccessExpr::TypeT::ArrayLength:
+        {
             return access->AType;
         }
     }
@@ -1326,6 +1336,14 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
                                                                         method->Identifier(), method->ToDescriptor());
             append(bytes, (uint8_t)Command::invokevirtual);
             append(bytes, ToBytes(methodRefConstant));
+            return bytes;
+        }
+        case AccessExpr::TypeT::ArrayLength:
+        {
+            Bytes bytes;
+            // Загрузка выражения слева от точки
+            append(bytes, ToBytes(expr->Previous, file));
+            append(bytes, (uint8_t)Command::arraylength);
             return bytes;
         }
         default: ;

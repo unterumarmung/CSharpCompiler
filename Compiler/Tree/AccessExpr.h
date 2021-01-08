@@ -21,7 +21,8 @@ struct AccessExpr final : Node
         Identifier,
         SimpleMethodCall,
         Dot,
-        DotMethodCall
+        DotMethodCall,
+        ArrayLength
     } Type{};
 
     ExprNode* Child{};

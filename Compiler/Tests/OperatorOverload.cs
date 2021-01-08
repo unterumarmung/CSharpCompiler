@@ -43,18 +43,31 @@ namespace OperatorOverload
         {
             return lhs.SetNumerator(lhs.numerator * rhs.denominator + rhs.numerator * lhs.denominator).SetDenominator(lhs.denominator * rhs.denominator);
         }
+       
         public static Fraction operator-(Fraction lhs, Fraction rhs)
         {
             Fraction rhsNegative = rhs.SetNumerator(-rhs.numerator);
             return lhs + rhsNegative;
         }
+      
         public static Fraction operator*(Fraction lhs, Fraction rhs)
         {
             return lhs.SetNumerator(lhs.numerator * rhs.numerator).SetDenominator(lhs.denominator * rhs.denominator);
         }
+       
         public static Fraction operator/(Fraction lhs, Fraction rhs)
         {
             return rhs.SetNumerator(lhs.numerator * rhs.denominator).SetDenominator(lhs.denominator * rhs.numerator);
+        }
+
+        public static Fraction operator+(Fraction lhs, int rhs)
+        {
+            return lhs.SetNumerator(lhs.numerator + rhs * lhs.denominator).SetDenominator(lhs.denominator);
+        }
+
+        public static Fraction operator+(int lhs, Fraction rhs)
+        {
+            return rhs + lhs;
         }
     }
 
@@ -77,6 +90,11 @@ namespace OperatorOverload
             (fr1 * fr2).WriteToConsole();
             Console.Write("Fractions after operator/: ");
             (fr1 / fr2).WriteToConsole();
+
+            Console.Write("1/2 + 1: ");
+            (fr1 + 1).WriteToConsole();
+            Console.Write("1 + 1/3: ");
+            (1 + fr2).WriteToConsole();
         }
     }
 }

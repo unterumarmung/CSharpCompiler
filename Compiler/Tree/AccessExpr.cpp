@@ -109,6 +109,7 @@ DataType AccessExpr::ToDataType() const
         childType.ArrayArity += 1;
         return childType;
     }
+
     if (Type == TypeT::Identifier)
     {
         DataType data;
@@ -116,10 +117,18 @@ DataType AccessExpr::ToDataType() const
         data.ComplexType = { std::string{ Identifier } };
         return data;
     }
+
     if (Type == TypeT::Dot)
     {
         auto childType = Previous->ToDataType();
         childType.ComplexType.emplace_back(Identifier);
+        return childType;
+    }
+
+    if (Type == TypeT::ArrayElementExpr)
+    {
+        auto childType = Previous->ToDataType();
+        childType.ArrayArity += 1;
         return childType;
     }
 

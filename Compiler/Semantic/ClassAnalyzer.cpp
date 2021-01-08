@@ -477,6 +477,17 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
     changed = ReplaceAssignmentsOnField(changed);
     changed->ApplyToAllChildren(ReplaceAssignmentsOnField);
 
+    auto validateComplexArrayCreation = [this](ExprNode* node)
+    {
+        auto* converted = node->ToComplexArrayNew(Errors);
+        if (converted)
+            return converted;
+        return node;
+    };
+
+    changed = validateComplexArrayCreation(changed);
+    changed->ApplyToAllChildren(validateComplexArrayCreation);
+
     CalculateTypesForExpr(changed);
 
     return changed;
@@ -689,7 +700,7 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         return;
     }
 
-    if (node->Type == ExprNode::TypeT::ArrayNew)
+    if (node->Type == ExprNode::TypeT::ArrayNewWithArguments)
     {
         if (const auto& elements = node->ExprSeq->GetSeq();
             !elements.empty())
@@ -719,12 +730,11 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         }
     }
 
-    if (node->Type == ExprNode::TypeT::StandardArrayNew)
+    if (node->Type == ExprNode::TypeT::ArrayNew)
     {
         CalculateTypesForExpr(node->Child);
-        auto dataType = ToDataType(node->StandardTypeChild);
-        dataType.ArrayArity += 1;
-        node->AType = dataType;
+        ValidateTypename(node->NewArrayType);
+        node->AType = node->NewArrayType;
         if (node->Child->AType != DataType{ DataType::TypeT::Int })
         {
             Errors.push_back("Array size must be int, not " + ToString(node->Child->AType));
@@ -765,7 +775,7 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
 
         const bool anyOfOperandsIsComplex = leftType.AType == DataType::TypeT::Complex || rightType.AType ==
                                             DataType::TypeT::Complex;
-        if (IsOveloadable(node->Type) && anyOfOperandsIsComplex)
+        if (IsOverloadable(node->Type) && anyOfOperandsIsComplex)
         {
             std::set<MethodDeclNode*> candidates;
             auto* leftClass = FindClass(leftType);
@@ -1001,6 +1011,7 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             }
 
             Errors.push_back("Variable with name \"" + name + "\" is not found");
+            break;
         }
         case AccessExpr::TypeT::Expr:
         {
@@ -1029,6 +1040,8 @@ ExprNode* ClassAnalyzer::ReplaceAssignmentsOnField(ExprNode* node)
         return converted;
     return node;
 }
+
+
 
 void ClassAnalyzer::ValidateTypename(DataType& dataType)
 {
@@ -1162,20 +1175,23 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
         {
             const auto arrayType = expr->Previous->AType;
             const auto elementType = expr->AType;
-            if (elementType.IsPrimitiveType() && arrayType.ArrayArity == 1)
+            Bytes bytes;
+            append(bytes, ToBytes(expr->Previous, file));
+            append(bytes, ToBytes(expr->Child, file));
+            if (elementType.IsPrimitiveType())
             {
-                Bytes bytes;
-                append(bytes, ToBytes(expr->Previous, file));
-                append(bytes, ToBytes(expr->Child, file));
                 if (elementType == DataType::IntType)
                     append(bytes, (uint8_t)Command::iaload);
                 else if (elementType == DataType::CharType)
                     append(bytes, (uint8_t)Command::caload);
                 else if (elementType == DataType::BoolType)
                     append(bytes, (uint8_t)Command::baload);
-                return bytes;
             }
-            break;
+            else if (elementType.IsReferenceType())
+            {
+                append(bytes, (uint8_t)Command::aaload);
+            }
+            return bytes;
         }
         case AccessExpr::TypeT::ComplexArrayType:
             break;
@@ -1496,12 +1512,16 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         return bytes;
     }
 
-    if (expr->Type == ExprNode::TypeT::StandardArrayNew)
+    if (expr->Type == ExprNode::TypeT::ArrayNew)
     {
         const auto type = expr->AType;
         auto elementType = type;
         elementType.ArrayArity = 0;
-        if (elementType.IsPrimitiveType() && type.ArrayArity == 1)
+        if (type.ArrayArity == 0)
+            throw std::runtime_error{ "Internal error: array arity = 0 in ArrayNew expr" };
+        if (type.ArrayArity > 1)
+            throw std::runtime_error{ "Cannot create multidimensional array" };
+        if (elementType.IsPrimitiveType())
         {
             Bytes bytes;
             append(bytes, ToBytes(expr->Child, file));
@@ -1514,7 +1534,15 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
                 append(bytes, (uint8_t)ArrayType::Boolean);
             return bytes;
         }
-        throw std::runtime_error{ "Cannot create object of type " + ToString(type) };
+        if (elementType.IsReferenceType())
+        {
+            Bytes bytes;
+            append(bytes, ToBytes(expr->Child, file));
+            append(bytes, (uint8_t)Command::anewarray);
+            const auto classId = file.Constants.FindClass(elementType.ToTypename());
+            append(bytes, ToBytes(classId));
+            return bytes;
+        }
     }
 
     if (expr->Type == ExprNode::TypeT::AssignOnArrayElement)
@@ -1522,22 +1550,24 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         const auto arrayType = expr->ArrayExpr->AType;
         auto elementType = arrayType;
         elementType.ArrayArity--;
-        if (elementType.IsPrimitiveType()
-            && arrayType.ArrayArity == 1)
+        Bytes bytes;
+        append(bytes, ToBytes(expr->ArrayExpr, file));
+        append(bytes, ToBytes(expr->IndexExpr, file));
+        append(bytes, ToBytes(expr->AssignExpr, file));
+        if (elementType.IsPrimitiveType())
         {
-            Bytes bytes;
-            append(bytes, ToBytes(expr->ArrayExpr, file));
-            append(bytes, ToBytes(expr->IndexExpr, file));
-            append(bytes, ToBytes(expr->AssignExpr, file));
-
             if (elementType == DataType::IntType)
                 append(bytes, (uint8_t)Command::iastore);
             else if (elementType == DataType::CharType)
                 append(bytes, (uint8_t)Command::castore);
             else if (elementType == DataType::BoolType)
                 append(bytes, (uint8_t)Command::bastore);
-            return bytes;
         }
+        if (elementType.IsReferenceType())
+        {
+            append(bytes, (uint8_t)Command::aastore);
+        }
+        return bytes;
     }
 
     if (expr->Type == ExprNode::TypeT::AssignOnField)

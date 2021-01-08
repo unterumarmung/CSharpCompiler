@@ -32,7 +32,6 @@ struct ExprNode final : Node
         Null,
         AccessExpr,
         SimpleNew,
-        ArrayNew,
         Cast,
         Plus_assign,
         Minus_assign,
@@ -41,7 +40,8 @@ struct ExprNode final : Node
         Increment,
         Decrement,
         AssignOnArrayElement,
-        StandardArrayNew,
+        ArrayNew,
+        ArrayNewWithArguments,
         AssignOnField
     } Type{};
 
@@ -51,9 +51,11 @@ struct ExprNode final : Node
     ExprNode* Left{};
     ExprNode* Right{};
 
-    // »спользуетс€ дл€ операции каста выражени€ и массива простых типов
     StandardType StandardTypeChild{};
-    // »спользуетс€ дл€ унарных операций и new массива простых типов
+
+    // »спользуетс€ дл€ массивов
+    DataType NewArrayType{};
+    // »спользуетс€ дл€ унарных операций и new массива
     ExprNode* Child{};
 
     AccessExpr* Access{};
@@ -97,6 +99,8 @@ struct ExprNode final : Node
 
     [[nodiscard]] ExprNode* ToAssignOnField() const;
 
+    [[nodiscard]] ExprNode* ToComplexArrayNew(std::vector<std::string>& errors) const;
+
     void ApplyToAllChildren(const std::function<ExprNode*(ExprNode*)>& mapFunction);
 
     void CallForAllChildren(const std::function<void(ExprNode*)>& function) const;
@@ -134,7 +138,7 @@ inline bool IsBinary(const ExprNode::TypeT type)
     }
 }
 
-inline bool IsOveloadable(const ExprNode::TypeT type)
+inline bool IsOverloadable(const ExprNode::TypeT type)
 {
     switch (type) // NOLINT(clang-diagnostic-switch-enum)
     {
@@ -250,8 +254,6 @@ inline std::string ToString(const ExprNode::TypeT type)
             return "--";
         case ExprNode::TypeT::AssignOnArrayElement:
             return "[]=";
-        case ExprNode::TypeT::StandardArrayNew:
-            return "new[]";
         case ExprNode::TypeT::AssignOnField:
             return ".=";
         default: ;

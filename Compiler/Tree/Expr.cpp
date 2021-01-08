@@ -45,7 +45,7 @@ ExprNode* ExprNode::FromNew(::TypeNode* typeNode)
 ExprNode* ExprNode::FromNew(::TypeNode* typeNode, ExprSeqNode* exprSeq)
 {
     auto* node = new ExprNode;
-    node->Type = TypeT::ArrayNew;
+    node->Type = TypeT::ArrayNewWithArguments;
     node->TypeNode = typeNode;
     node->ExprSeq = exprSeq;
     return node;
@@ -63,8 +63,10 @@ ExprNode* ExprNode::FromCast(const StandardType standardType, ExprNode* expr)
 ExprNode* ExprNode::FromNew(StandardType standardType, ExprNode* expr)
 {
     auto* node = new ExprNode;
-    node->Type = TypeT::StandardArrayNew;
-    node->StandardTypeChild = standardType;
+    node->Type = TypeT::ArrayNew;
+    auto dataType = ToDataType(standardType);
+    dataType.ArrayArity += 1;
+    node->NewArrayType = dataType;
     node->Child = expr;
     return node;
 }
@@ -105,6 +107,30 @@ ExprNode* ExprNode::ToAssignOnField() const
 
     expr->AType = DataType::VoidType;
 
+    return expr;
+}
+
+ExprNode* ExprNode::ToComplexArrayNew(std::vector<std::string>& errors) const
+{
+    const bool isArrayNew = Type == TypeT::SimpleNew
+        && TypeNode->Access
+        && TypeNode->Access->Type == AccessExpr::TypeT::ArrayElementExpr;
+
+    if (!isArrayNew)
+        return nullptr;
+
+    const auto arrayType = ToDataType(TypeNode);
+
+    if (isArrayNew && arrayType.IsUnknown)
+    {
+        errors.emplace_back("Cannot create such array");
+        return nullptr;
+    }
+
+    auto* expr = new ExprNode;
+    expr->Type = TypeT::ArrayNew;
+    expr->NewArrayType = arrayType;
+    expr->Child = TypeNode->Access->Child;
     return expr;
 }
 

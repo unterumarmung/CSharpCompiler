@@ -4,6 +4,7 @@
 #include <iterator>
 #include <algorithm>
 #include <iostream>
+#include <set>
 using namespace std::string_literals;
 
 bool operator==(const Constant& lhs, const Constant& rhs)
@@ -762,6 +763,58 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         const auto& leftType = node->Left->AType;
         const auto& rightType = node->Right->AType;
 
+        const bool anyOfOperandsIsComplex = leftType.AType == DataType::TypeT::Complex || rightType.AType ==
+                                            DataType::TypeT::Complex;
+        if (IsOveloadable(node->Type) && anyOfOperandsIsComplex)
+        {
+            std::set<MethodDeclNode*> candidates;
+            auto* leftClass = FindClass(leftType);
+            auto* rightClass = FindClass(rightType);
+
+            if (leftClass)
+            {
+                auto const& methods = leftClass->Members->Methods;
+                std::copy_if(methods.begin(), methods.end(), std::inserter(candidates, candidates.begin()),
+                             [&](MethodDeclNode* method)
+                             {
+                                 return method->IsOperatorOverload
+                                        && method->Operator == ToOperatorOverload(node->Type)
+                                        && leftType == method->Arguments->GetSeq()[0]->AType
+                                        && rightType == method->Arguments->GetSeq()[1]->AType;
+                             });
+            }
+            if (rightClass)
+            {
+                auto const& methods = rightClass->Members->Methods;
+                std::copy_if(methods.begin(), methods.end(), std::inserter(candidates, candidates.begin()),
+                             [&](MethodDeclNode* method)
+                             {
+                                 return method->IsOperatorOverload
+                                        && method->Operator == ToOperatorOverload(node->Type)
+                                        && leftType == method->Arguments->GetSeq()[0]->AType
+                                        && rightType == method->Arguments->GetSeq()[1]->AType;
+                             });
+            }
+
+            if (candidates.empty())
+            {
+                Errors.push_back("There is no operator" + ToString(node->Type) + " overload to call with types " +
+                                 ToString(std::vector{ leftType, rightType }));
+                return;
+            }
+            if (candidates.size() > 1)
+            {
+                Errors.push_back("There is more than one operator" + ToString(node->Type) +
+                                 " overload to call with types " + ToString(std::vector{ leftType, rightType }));
+                return;
+            }
+
+            auto* operator_ = *candidates.begin();
+            node->AType = operator_->AReturnType;
+            node->OverloadedOperation = operator_;
+            return;
+        }
+
         if (IsLogical(node->Type))
         {
             node->AType = boolType;
@@ -805,6 +858,8 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
 DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
 {
     DataType type;
+
+
     // ReSharper disable once CppIncompleteSwitchStatement
     // ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
     switch (access->Type) // NOLINT(clang-diagnostic-switch)
@@ -947,6 +1002,12 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
 
             Errors.push_back("Variable with name \"" + name + "\" is not found");
         }
+        case AccessExpr::TypeT::Expr:
+        {
+            CalculateTypesForExpr(access->Child);
+            access->AType = access->Child->AType;
+            return access->AType;
+        }
     }
     type.IsUnknown = true;
     access->AType = type;
@@ -974,7 +1035,7 @@ void ClassAnalyzer::ValidateTypename(DataType& dataType)
     if (dataType.IsUnknown) { Errors.emplace_back("Cannot create object of unknown type"); }
     else if (dataType.AType == DataType::TypeT::Complex)
     {
-        NamespaceDeclNode* namespace_ = Namespace;
+        auto* namespace_ = Namespace;
         if (dataType.ComplexType.size() > 1)
         {
             const auto foundNamespace = std::find_if(AllNamespaces->GetSeq().begin(), AllNamespaces->GetSeq().end(),
@@ -1002,8 +1063,9 @@ void ClassAnalyzer::ValidateTypename(DataType& dataType)
                                  namespace_->NamespaceName
                              });
             dataType.IsUnknown = true;
+            return;
         }
-        else if (dataType.ComplexType.size() == 1)
+        if (dataType.ComplexType.size() == 1)
         {
             dataType.ComplexType.insert(dataType.ComplexType.begin(), std::string{ Namespace->NamespaceName });
         }
@@ -1054,8 +1116,6 @@ void ClassAnalyzer::FillTables(FieldDeclNode* field)
 
 void ClassAnalyzer::FillTables(MethodDeclNode* method)
 {
-    if (method->IsOperatorOverload)
-        return;
     const auto nameId = File.Constants.FindUtf8(method->Identifier());
     const auto methodDescriptor = method->Identifier() == "main" && method->IsStatic
                                       ? "([Ljava/lang/String;)V"
@@ -1362,25 +1422,37 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         const auto rightBytes = ToBytes(expr->Right, file);
         append(bytes, leftBytes);
         append(bytes, rightBytes);
-        if (expr->AType != DataType::IntType) { throw std::runtime_error{ "Only ints are supported" }; }
-        switch (expr->Type) // NOLINT(clang-diagnostic-switch-enum)
+        if (expr->OverloadedOperation)
         {
-            case ExprNode::TypeT::BinPlus:
-                append(bytes, (uint8_t)Command::iadd);
-                break;
-            case ExprNode::TypeT::BinMinus:
-                append(bytes, (uint8_t)Command::isub);
-                break;
-            case ExprNode::TypeT::Multiply:
-                append(bytes, (uint8_t)Command::imul);
-                break;
-            case ExprNode::TypeT::Divide:
-                append(bytes, (uint8_t)Command::idiv);
-                break;
-
-            default:
-                throw std::runtime_error{ "Not supported" };
+            const auto operatorRef = file.Constants.FindMethodRef(expr->OverloadedOperation->Class->ToDataType().
+                                                                        ToTypename(),
+                                                                  expr->OverloadedOperation->Identifier(),
+                                                                  expr->OverloadedOperation->ToDescriptor());
+            append(bytes, (uint8_t)Command::invokestatic);
+            append(bytes, ToBytes(operatorRef));
         }
+        else if (expr->AType == DataType::IntType)
+        {
+            switch (expr->Type) // NOLINT(clang-diagnostic-switch-enum)
+            {
+                case ExprNode::TypeT::BinPlus:
+                    append(bytes, (uint8_t)Command::iadd);
+                    break;
+                case ExprNode::TypeT::BinMinus:
+                    append(bytes, (uint8_t)Command::isub);
+                    break;
+                case ExprNode::TypeT::Multiply:
+                    append(bytes, (uint8_t)Command::imul);
+                    break;
+                case ExprNode::TypeT::Divide:
+                    append(bytes, (uint8_t)Command::idiv);
+                    break;
+
+                default:
+                    throw std::runtime_error{ "Not supported" };
+            }
+        }
+        else { throw std::runtime_error{ "Only ints are supported" }; }
         return bytes;
     }
 

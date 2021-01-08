@@ -60,6 +60,24 @@ enum class OperatorType
     Divide
 };
 
+inline OperatorType ToOperatorOverload(const ExprNode::TypeT type)
+{
+    // ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
+    // ReSharper disable once CppIncompleteSwitchStatement
+    switch (type) // NOLINT(clang-diagnostic-switch)
+    {
+        case ExprNode::TypeT::BinPlus:
+            return OperatorType::Plus;
+        case ExprNode::TypeT::BinMinus:
+            return OperatorType::Minus;
+        case ExprNode::TypeT::Multiply:
+            return OperatorType::Multiply;
+        case ExprNode::TypeT::Divide:
+            return OperatorType::Divide;
+    }
+    return {};
+}
+
 struct MethodDeclNode final : Node
 {
     const VisibilityModifier Visibility{};

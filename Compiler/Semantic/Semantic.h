@@ -50,20 +50,43 @@ struct Semantic
             method->AnalyzeArguments();
             return method;
         }();
-        auto* writeIntMethod = []
+        auto* writeLineIntMethod = []
         {
             auto* arg = new VarDeclNode(new TypeNode(StandardType::Int), "arg", nullptr);
-            auto args = MethodArguments::MakeEmpty();
+            auto* args = MethodArguments::MakeEmpty();
             args->Add(arg);
             auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "WriteLine", args, nullptr);
             method->AReturnType = DataType::VoidType;
             method->AnalyzeArguments();
             return method;
         }();
-        auto* writeBoolMethod = []
+
+        auto* writeIntMethod = []
+        {
+            auto* arg = new VarDeclNode(new TypeNode(StandardType::Int), "arg", nullptr);
+            auto* args = MethodArguments::MakeEmpty();
+            args->Add(arg);
+            auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "Write", args, nullptr);
+            method->AReturnType = DataType::VoidType;
+            method->AnalyzeArguments();
+            return method;
+        }();
+
+        auto* writeLineBoolMethod = []
         {
             auto* arg = new VarDeclNode(new TypeNode(StandardType::Bool), "arg", nullptr);
-            auto args = MethodArguments::MakeEmpty();
+            auto* args = MethodArguments::MakeEmpty();
+            args->Add(arg);
+            auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "WriteLine", args, nullptr);
+            method->AReturnType = DataType::VoidType;
+            method->AnalyzeArguments();
+            return method;
+        }();
+
+        auto* writeLineStrMethod = []
+        {
+            auto* arg = new VarDeclNode(new TypeNode(StandardType::String), "arg", nullptr);
+            auto* args = MethodArguments::MakeEmpty();
             args->Add(arg);
             auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "WriteLine", args, nullptr);
             method->AReturnType = DataType::VoidType;
@@ -74,18 +97,18 @@ struct Semantic
         auto* writeStrMethod = []
         {
             auto* arg = new VarDeclNode(new TypeNode(StandardType::String), "arg", nullptr);
-            auto args = MethodArguments::MakeEmpty();
+            auto* args = MethodArguments::MakeEmpty();
             args->Add(arg);
-            auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "WriteLine", args, nullptr);
+            auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "Write", args, nullptr);
             method->AReturnType = DataType::VoidType;
             method->AnalyzeArguments();
             return method;
         }();
 
-        auto* writeCharMethod = []
+        auto* writeLineCharMethod = []
         {
             auto* arg = new VarDeclNode(new TypeNode(StandardType::Char), "arg", nullptr);
-            auto args = MethodArguments::MakeEmpty();
+            auto* args = MethodArguments::MakeEmpty();
             args->Add(arg);
             auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "WriteLine", args, nullptr);
             method->AReturnType = DataType::VoidType;
@@ -95,18 +118,23 @@ struct Semantic
 
         auto* consoleClassMembers = new ClassMembersNode();
         consoleClassMembers->Methods.push_back(readIntMethod);
+        consoleClassMembers->Methods.push_back(writeLineIntMethod);
         consoleClassMembers->Methods.push_back(writeIntMethod);
+        consoleClassMembers->Methods.push_back(writeLineStrMethod);
         consoleClassMembers->Methods.push_back(writeStrMethod);
-        consoleClassMembers->Methods.push_back(writeBoolMethod);
-        consoleClassMembers->Methods.push_back(writeCharMethod);
+        consoleClassMembers->Methods.push_back(writeLineBoolMethod);
+        consoleClassMembers->Methods.push_back(writeLineCharMethod);
+
 
         auto* consoleClass = new ClassDeclNode("Console", nullptr, consoleClassMembers);
 
         readIntMethod->Class = consoleClass;
+        writeLineIntMethod->Class = consoleClass;
         writeIntMethod->Class = consoleClass;
-        writeBoolMethod->Class = consoleClass;
+        writeLineBoolMethod->Class = consoleClass;
+        writeLineStrMethod->Class = consoleClass;
         writeStrMethod->Class = consoleClass;
-        writeCharMethod->Class = consoleClass;
+        writeLineCharMethod->Class = consoleClass;
 
         auto* systemMembers = new NamespaceMembersNode();
         systemMembers->Add(consoleClass);

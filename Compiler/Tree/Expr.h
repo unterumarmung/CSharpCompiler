@@ -5,6 +5,7 @@
 #include <functional>
 
 struct FieldDeclNode;
+struct MethodDeclNode;
 struct AccessExpr;
 struct ExprSeqNode;
 struct ClassDeclNode;
@@ -72,6 +73,8 @@ struct ExprNode final : Node
     // For AssignOnArrayElement && AssignOnField
     ExprNode* AssignExpr{};
 
+    MethodDeclNode* OverloadedOperation{};
+
     static ExprNode* FromBinaryExpression(TypeT type, ExprNode* lhs, ExprNode* rhs);
 
     static ExprNode* FromUnaryExpression(TypeT type, ExprNode* child);
@@ -125,6 +128,20 @@ inline bool IsBinary(const ExprNode::TypeT type)
         case ExprNode::TypeT::Minus_assign:
         case ExprNode::TypeT::Multiply_assign:
         case ExprNode::TypeT::Division_assign:
+            return true;
+        default:
+            return false;
+    }
+}
+
+inline bool IsOveloadable(const ExprNode::TypeT type)
+{
+    switch (type) // NOLINT(clang-diagnostic-switch-enum)
+    {
+        case ExprNode::TypeT::BinPlus:
+        case ExprNode::TypeT::BinMinus:
+        case ExprNode::TypeT::Multiply:
+        case ExprNode::TypeT::Divide:
             return true;
         default:
             return false;

@@ -124,7 +124,7 @@ inline AccessFlags operator|(AccessFlags lhs, AccessFlags rhs)
     return static_cast<AccessFlags>(lhs2 | rhs2);
 }
 
-inline AccessFlags ToAccessFlags(VisibilityModifier visibility, const bool isStatic = false)
+inline AccessFlags ToAccessFlags(const VisibilityModifier visibility, const bool isStatic = false)
 {
     if (isStatic)
         return AccessFlags::Static | ToAccessFlags(visibility);

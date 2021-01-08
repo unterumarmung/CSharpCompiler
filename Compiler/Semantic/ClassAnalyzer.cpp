@@ -4,6 +4,7 @@
 #include <iterator>
 #include <algorithm>
 #include <iostream>
+#include <set>
 using namespace std::string_literals;
 
 bool operator==(const Constant& lhs, const Constant& rhs)
@@ -257,7 +258,7 @@ void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
         if (foundVariable != methodVariables.end())
         {
             Errors.push_back("Variable with name '" + std::string{ varDecl->Identifier } +
-                             "' is already defined in method " + std::string{ CurrentMethod->Identifier });
+                             "' is already defined in method " + std::string{ CurrentMethod->Identifier() });
             return;
         }
         CurrentMethod->Variables.push_back(varDecl);
@@ -320,7 +321,7 @@ void ClassAnalyzer::AnalyzeReturn(StmtNode* node)
     if (node->Expr == nullptr && CurrentMethod->AReturnType != DataType::VoidType)
     {
         Errors.emplace_back("Cannot return empty expression in non-void method " + std::string{
-                                CurrentMethod->Identifier
+                                CurrentMethod->Identifier()
                             });
     }
     if (node->Expr && node->Expr->AType != CurrentMethod->AReturnType)
@@ -351,9 +352,8 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
     method->Class = CurrentClass;
     CurrentMethod = method;
 
-    if (CurrentMethod->IsStatic)
+    if (const auto isMain = CurrentMethod->Identifier() == "Main"; isMain && CurrentMethod->IsStatic)
     {
-        const auto isMain = CurrentMethod->Identifier == "Main";
         const auto noArguments = CurrentMethod->ArgumentDtos.empty();
         if (!isMain || !noArguments)
         {
@@ -361,9 +361,17 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
             return;
         }
         AllMains.push_back(method);
-        CurrentMethod->Identifier = "main";
+        CurrentMethod->_identifier = "main";
         // Локальная переменная args для мейна
         CurrentMethod->Variables.push_back(new VarDeclNode(nullptr, "", nullptr));
+    }
+
+    const auto canBeStatic = CurrentMethod->IsOperatorOverload || CurrentMethod->Identifier() == "main";
+
+    if (CurrentMethod->IsStatic && !canBeStatic)
+    {
+        Errors.emplace_back("Only Main method with no arguments and operator overloads can be static");
+        return;
     }
 
     if (!CurrentMethod->IsStatic)
@@ -377,7 +385,7 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
     const auto& allMethods = CurrentClass->Members->Methods;
     const auto sameMethodsCount = std::count_if(allMethods.begin(), allMethods.end(), [&](auto* otherMethod)
     {
-        return method->Identifier == otherMethod->Identifier &&
+        return method->Identifier() == otherMethod->Identifier() &&
                ToTypes(method->ArgumentDtos) ==
                ToTypes(otherMethod->ArgumentDtos);
     });
@@ -385,7 +393,7 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
     if (sameMethodsCount > 1)
     {
         Errors.push_back("Method with name "
-                         + std::string(method->Identifier)
+                         + method->Identifier()
                          + " and with arguments of types: "
                          + ToString(ToTypes(method->ArgumentDtos))
                          + " has been already defined");
@@ -393,9 +401,9 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 
     if (method->Body->GetSeq().empty() && method->AReturnType != DataType::VoidType)
     {
-        Errors.push_back("There must be return statement in non-void method with name " + std::string{
-                             method->Identifier
-                         });
+        Errors.push_back("There must be return statement in non-void method with name " +
+                         method->Identifier()
+                        );
         CurrentMethod = nullptr;
         return;
     }
@@ -405,11 +413,24 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 
     for (auto* stmt : method->Body->GetSeq()) { AnalyzeStmt(stmt); }
 
+    if (method->IsOperatorOverload)
+    {
+        const auto classDataType = CurrentClass->ToDataType();
+        const auto lhsDataType = method->Arguments->GetSeq()[0]->AType;
+        const auto rhsDataType = method->Arguments->GetSeq()[1]->AType;
+
+        if (classDataType != rhsDataType && classDataType != lhsDataType)
+        {
+            Errors.push_back("One of the parameters of a binary operator must be the containing type");
+            return;
+        }
+    }
+
     if (!method->Body->GetSeq().empty()
         && method->Body->GetSeq().back()->Type != StmtNode::TypeT::Return
         && method->AReturnType != DataType::VoidType)
     {
-        Errors.push_back("Last statement in method " + std::string{ method->Identifier } + " must be return!");
+        Errors.push_back("Last statement in method " + method->Identifier() + " must be return!");
     }
 
     CurrentMethod = nullptr;
@@ -512,7 +533,7 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(AccessExpr* expr)
     auto const& allMethods = CurrentClass->Members->Methods;
     const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
     {
-        return methodName == method->Identifier && callTypes ==
+        return methodName == method->Identifier() && callTypes ==
                ToTypes(method->ArgumentDtos) && !method->IsStatic;
     });
 
@@ -526,7 +547,7 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(AccessExpr* expr)
     if (CurrentMethod->IsStatic && !(*foundMethod)->IsStatic)
     {
         Errors.push_back("Cannot call non-static method with name \'" + std::string{ methodName } +
-                         "\' from static method with name \'" + std::string{ CurrentMethod->Identifier } + "\'");
+                         "\' from static method with name \'" + CurrentMethod->Identifier() + "\'");
         return;
     }
     AnalyzeMethodAccessibility(*foundMethod);
@@ -564,7 +585,7 @@ void ClassAnalyzer::AnalyzeDotMethodCall(AccessExpr* expr)
     auto const& allMethods = foundClass->Members->Methods;
     const auto foundMethod = std::find_if(allMethods.begin(), allMethods.end(), [&](auto* method)
     {
-        return methodName == method->Identifier && callTypes ==
+        return methodName == method->Identifier() && callTypes ==
                ToTypes(method->ArgumentDtos) && !method->IsStatic;
     });
 
@@ -597,7 +618,7 @@ void ClassAnalyzer::AnalyzeMethodAccessibility(MethodDeclNode* method)
 
     if (sameClass || isPublic)
         return;
-    Errors.push_back("Cannot access " + ToString(method->Visibility) + " method " + std::string{ method->Identifier } +
+    Errors.push_back("Cannot access " + ToString(method->Visibility) + " method " + method->Identifier() +
                      " from class " + std::string{ CurrentClass->ClassName });
 }
 
@@ -742,6 +763,58 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         const auto& leftType = node->Left->AType;
         const auto& rightType = node->Right->AType;
 
+        const bool anyOfOperandsIsComplex = leftType.AType == DataType::TypeT::Complex || rightType.AType ==
+                                            DataType::TypeT::Complex;
+        if (IsOveloadable(node->Type) && anyOfOperandsIsComplex)
+        {
+            std::set<MethodDeclNode*> candidates;
+            auto* leftClass = FindClass(leftType);
+            auto* rightClass = FindClass(rightType);
+
+            if (leftClass)
+            {
+                auto const& methods = leftClass->Members->Methods;
+                std::copy_if(methods.begin(), methods.end(), std::inserter(candidates, candidates.begin()),
+                             [&](MethodDeclNode* method)
+                             {
+                                 return method->IsOperatorOverload
+                                        && method->Operator == ToOperatorOverload(node->Type)
+                                        && leftType == method->Arguments->GetSeq()[0]->AType
+                                        && rightType == method->Arguments->GetSeq()[1]->AType;
+                             });
+            }
+            if (rightClass)
+            {
+                auto const& methods = rightClass->Members->Methods;
+                std::copy_if(methods.begin(), methods.end(), std::inserter(candidates, candidates.begin()),
+                             [&](MethodDeclNode* method)
+                             {
+                                 return method->IsOperatorOverload
+                                        && method->Operator == ToOperatorOverload(node->Type)
+                                        && leftType == method->Arguments->GetSeq()[0]->AType
+                                        && rightType == method->Arguments->GetSeq()[1]->AType;
+                             });
+            }
+
+            if (candidates.empty())
+            {
+                Errors.push_back("There is no operator" + ToString(node->Type) + " overload to call with types " +
+                                 ToString(std::vector{ leftType, rightType }));
+                return;
+            }
+            if (candidates.size() > 1)
+            {
+                Errors.push_back("There is more than one operator" + ToString(node->Type) +
+                                 " overload to call with types " + ToString(std::vector{ leftType, rightType }));
+                return;
+            }
+
+            auto* operator_ = *candidates.begin();
+            node->AType = operator_->AReturnType;
+            node->OverloadedOperation = operator_;
+            return;
+        }
+
         if (IsLogical(node->Type))
         {
             node->AType = boolType;
@@ -785,6 +858,8 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
 DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
 {
     DataType type;
+
+
     // ReSharper disable once CppIncompleteSwitchStatement
     // ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
     switch (access->Type) // NOLINT(clang-diagnostic-switch)
@@ -927,6 +1002,12 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
 
             Errors.push_back("Variable with name \"" + name + "\" is not found");
         }
+        case AccessExpr::TypeT::Expr:
+        {
+            CalculateTypesForExpr(access->Child);
+            access->AType = access->Child->AType;
+            return access->AType;
+        }
     }
     type.IsUnknown = true;
     access->AType = type;
@@ -954,7 +1035,7 @@ void ClassAnalyzer::ValidateTypename(DataType& dataType)
     if (dataType.IsUnknown) { Errors.emplace_back("Cannot create object of unknown type"); }
     else if (dataType.AType == DataType::TypeT::Complex)
     {
-        NamespaceDeclNode* namespace_ = Namespace;
+        auto* namespace_ = Namespace;
         if (dataType.ComplexType.size() > 1)
         {
             const auto foundNamespace = std::find_if(AllNamespaces->GetSeq().begin(), AllNamespaces->GetSeq().end(),
@@ -982,8 +1063,9 @@ void ClassAnalyzer::ValidateTypename(DataType& dataType)
                                  namespace_->NamespaceName
                              });
             dataType.IsUnknown = true;
+            return;
         }
-        else if (dataType.ComplexType.size() == 1)
+        if (dataType.ComplexType.size() == 1)
         {
             dataType.ComplexType.insert(dataType.ComplexType.begin(), std::string{ Namespace->NamespaceName });
         }
@@ -1034,8 +1116,8 @@ void ClassAnalyzer::FillTables(FieldDeclNode* field)
 
 void ClassAnalyzer::FillTables(MethodDeclNode* method)
 {
-    const auto nameId = File.Constants.FindUtf8(method->Identifier);
-    const auto methodDescriptor = method->Identifier == "main" && method->IsStatic
+    const auto nameId = File.Constants.FindUtf8(method->Identifier());
+    const auto methodDescriptor = method->Identifier() == "main" && method->IsStatic
                                       ? "([Ljava/lang/String;)V"
                                       : method->ToDescriptor();
 
@@ -1191,7 +1273,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
 
             const auto* method = expr->ActualMethodCall;
             const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToTypename(),
-                                                                        method->Identifier, method->ToDescriptor());
+                                                                        method->Identifier(), method->ToDescriptor());
             append(bytes, (uint8_t)Command::invokevirtual);
             append(bytes, ToBytes(methodRefConstant));
             return bytes;
@@ -1225,7 +1307,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
 
             const auto* method = expr->ActualMethodCall;
             const auto methodRefConstant = file.Constants.FindMethodRef(method->Class->ToDataType().ToTypename(),
-                                                                        method->Identifier, method->ToDescriptor());
+                                                                        method->Identifier(), method->ToDescriptor());
             append(bytes, (uint8_t)Command::invokevirtual);
             append(bytes, ToBytes(methodRefConstant));
             return bytes;
@@ -1340,25 +1422,37 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         const auto rightBytes = ToBytes(expr->Right, file);
         append(bytes, leftBytes);
         append(bytes, rightBytes);
-        if (expr->AType != DataType::IntType) { throw std::runtime_error{ "Only ints are supported" }; }
-        switch (expr->Type) // NOLINT(clang-diagnostic-switch-enum)
+        if (expr->OverloadedOperation)
         {
-            case ExprNode::TypeT::BinPlus:
-                append(bytes, (uint8_t)Command::iadd);
-                break;
-            case ExprNode::TypeT::BinMinus:
-                append(bytes, (uint8_t)Command::isub);
-                break;
-            case ExprNode::TypeT::Multiply:
-                append(bytes, (uint8_t)Command::imul);
-                break;
-            case ExprNode::TypeT::Divide:
-                append(bytes, (uint8_t)Command::idiv);
-                break;
-
-            default:
-                throw std::runtime_error{ "Not supported" };
+            const auto operatorRef = file.Constants.FindMethodRef(expr->OverloadedOperation->Class->ToDataType().
+                                                                        ToTypename(),
+                                                                  expr->OverloadedOperation->Identifier(),
+                                                                  expr->OverloadedOperation->ToDescriptor());
+            append(bytes, (uint8_t)Command::invokestatic);
+            append(bytes, ToBytes(operatorRef));
         }
+        else if (expr->AType == DataType::IntType)
+        {
+            switch (expr->Type) // NOLINT(clang-diagnostic-switch-enum)
+            {
+                case ExprNode::TypeT::BinPlus:
+                    append(bytes, (uint8_t)Command::iadd);
+                    break;
+                case ExprNode::TypeT::BinMinus:
+                    append(bytes, (uint8_t)Command::isub);
+                    break;
+                case ExprNode::TypeT::Multiply:
+                    append(bytes, (uint8_t)Command::imul);
+                    break;
+                case ExprNode::TypeT::Divide:
+                    append(bytes, (uint8_t)Command::idiv);
+                    break;
+
+                default:
+                    throw std::runtime_error{ "Not supported" };
+            }
+        }
+        else { throw std::runtime_error{ "Only ints are supported" }; }
         return bytes;
     }
 

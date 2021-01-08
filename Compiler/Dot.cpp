@@ -254,8 +254,11 @@ void ToDot(const VarDeclNode* node, std::ostream& out)
     auto name = std::string{ node->Name() } + "\\nName = "s + std::string{ node->Identifier };
     name += "\nCalculated data type: " + ToString(node->AType);
     out << MakeNode(node->Id, name);
-    ToDot(node->VarType, out);
-    out << MakeConnection(node->Id, node->VarType->Id, "Variable type");
+    if (node->VarType != nullptr)
+    {
+        ToDot(node->VarType, out);
+        out << MakeConnection(node->Id, node->VarType->Id, "Variable type");
+    }
     if (node->InitExpr != nullptr)
     {
         ToDot(node->InitExpr, out);

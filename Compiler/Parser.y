@@ -155,6 +155,7 @@ extern struct Program* treeRoot;
 %token IN_KW
 %token OBJECT
 %token OPERATOR
+%token VAR
 
 %right '=' PLUS_ASSIGN MINUS_ASSIGN MULTIPLY_ASSIGN DIVISION_ASSIGN
 %left OR
@@ -286,8 +287,10 @@ type: standard_type         { $$ = new TypeNode($1); }
 ;
 
 var_decl: type IDENTIFIER                           { $$ = new VarDeclNode($1, $2, nullptr); }
+        | VAR IDENTIFIER                            { $$ = new VarDeclNode(nullptr, $2, nullptr, true); }
 ;
 var_decl_with_init: type IDENTIFIER '=' expr        { $$ = new VarDeclNode($1, $2, $4); }
+                    | VAR IDENTIFIER '=' expr       { $$ = new VarDeclNode(nullptr, $2, $4, true); }
 ;
 
 method_arguments: var_decl                          { $$ = new MethodArguments($1); }

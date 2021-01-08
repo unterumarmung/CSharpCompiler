@@ -379,6 +379,7 @@ unchecked                               { PrintKeyword(yytext); }
 unsafe                                  { PrintKeyword(yytext); } 
 ushort                                  { PrintKeyword(yytext); } 
 using                                   { return USING; } 
+var                                     { return VAR; }
 virtual                                 { PrintKeyword(yytext); } 
 void                                    { return VOID_KW; } 
 volatile                                { PrintKeyword(yytext); } 

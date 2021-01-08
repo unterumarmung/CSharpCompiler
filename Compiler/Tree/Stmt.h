@@ -14,10 +14,14 @@ struct VarDeclNode final : Node
 
     int ScopingLevel = -1;
 
-    VarDeclNode(TypeNode* const varType, const char* const identifier, ExprNode* const initExpr)
+    bool ShouldDeduceType = false;
+
+    VarDeclNode(TypeNode* const varType, const char* const identifier, ExprNode* const initExpr,
+                bool deduceType = false)
         : VarType{ varType }
       , Identifier{ identifier }
       , InitExpr{ initExpr }
+      , ShouldDeduceType{ deduceType }
     {
     }
 

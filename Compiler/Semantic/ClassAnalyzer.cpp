@@ -238,9 +238,28 @@ void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
 {
     if (!varDecl)
         return;
-    varDecl->AType = ToDataType(varDecl->VarType);
-    ValidateTypename(varDecl->AType);
+
     varDecl->InitExpr = AnalyzeExpr(varDecl->InitExpr);
+
+    if (varDecl->ShouldDeduceType)
+    {
+        if (!CurrentMethod)
+        {
+            Errors.emplace_back("Cannot use type deduction on fields of class");
+            return;
+        }
+
+        if (varDecl->InitExpr == nullptr)
+        {
+            Errors.emplace_back("Cannot deduce type without initialization");
+            return;
+        }
+
+        varDecl->AType = varDecl->InitExpr->AType;
+    }
+    else { varDecl->AType = ToDataType(varDecl->VarType); }
+
+    ValidateTypename(varDecl->AType);
 
     if (withInit && varDecl->InitExpr && varDecl->AType != varDecl->InitExpr->AType)
     {
@@ -1212,7 +1231,8 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
                 else if (elementType == DataType::BoolType)
                     append(bytes, (uint8_t)Command::baload);
             }
-            else if (elementType.IsReferenceType()) { append(bytes, (uint8_t)Command::aaload); }
+            else
+                if (elementType.IsReferenceType()) { append(bytes, (uint8_t)Command::aaload); }
             return bytes;
         }
         case AccessExpr::TypeT::ComplexArrayType:

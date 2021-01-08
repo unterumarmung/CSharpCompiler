@@ -98,11 +98,11 @@ public:
     bool IsOperatorOverload = false;
     OperatorType Operator{};
 
-    VarDeclNode* FindVariableByName(std::string_view var)
+    VarDeclNode* FindVariableByName(std::string_view var, int scopingLevel)
     {
         for (auto* variable : Variables)
         {
-            if (variable->Identifier == var)
+            if (variable->Identifier == var && variable->ScopingLevel <= scopingLevel)
                 return variable;
         }
         return nullptr;

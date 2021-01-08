@@ -12,6 +12,8 @@ struct VarDeclNode final : Node
     DataType AType{};
     int PositionInMethod{};
 
+    int ScopingLevel = -1;
+
     VarDeclNode(TypeNode* const varType, const char* const identifier, ExprNode* const initExpr)
         : VarType{ varType }
       , Identifier{ identifier }

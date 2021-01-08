@@ -186,6 +186,22 @@ struct ClassAnalyzer
     NamespaceDeclNode* Namespace{};
     NamespaceDeclSeq* AllNamespaces{};
     std::vector<MethodDeclNode*> AllMains{};
+    int CurrentScopingLevel = 0;
+
+    void IncrementScopingLevel() { CurrentScopingLevel++; }
+
+    void DecrementScopingLevel()
+    {
+        if (CurrentMethod && CurrentScopingLevel > 0)
+        {
+            for (auto* varDecl : CurrentMethod->Variables)
+            {
+                if (varDecl->ScopingLevel == CurrentScopingLevel)
+                    varDecl->Identifier = "";
+            }
+            CurrentScopingLevel--;
+        }
+    }
 
     explicit ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_, NamespaceDeclSeq* allNamespaces);
 

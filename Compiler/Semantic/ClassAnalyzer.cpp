@@ -253,7 +253,8 @@ void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
         auto const& methodVariables = CurrentMethod->Variables;
         auto const foundVariable = std::find_if(methodVariables.begin(), methodVariables.end(), [&](VarDeclNode* var)
         {
-            return var->Identifier == varDecl->Identifier;
+            return var->Identifier == varDecl->Identifier && varDecl->
+                   ScopingLevel <= CurrentScopingLevel;
         });
         if (foundVariable != methodVariables.end())
         {
@@ -261,6 +262,7 @@ void ClassAnalyzer::AnalyzeVarDecl(VarDeclNode* varDecl, bool withInit)
                              "' is already defined in method " + std::string{ CurrentMethod->Identifier() });
             return;
         }
+        varDecl->ScopingLevel = CurrentScopingLevel;
         CurrentMethod->Variables.push_back(varDecl);
         varDecl->PositionInMethod = CurrentMethod->Variables.size() - 1;
     }
@@ -270,45 +272,55 @@ void ClassAnalyzer::AnalyzeWhile(WhileNode* while_)
 {
     if (!while_)
         return;
+    IncrementScopingLevel();
     while_->Condition = AnalyzeExpr(while_->Condition);
     AnalyzeStmt(while_->Body);
+    DecrementScopingLevel();
 }
 
 void ClassAnalyzer::AnalyzeDoWhile(DoWhileNode* doWhile)
 {
     if (!doWhile)
         return;
+    IncrementScopingLevel();
     doWhile->Condition = AnalyzeExpr(doWhile->Condition);
     AnalyzeStmt(doWhile->Body);
+    DecrementScopingLevel();
 }
 
 void ClassAnalyzer::AnalyzeFor(ForNode* for_)
 {
     if (!for_)
         return;
+    IncrementScopingLevel();
     AnalyzeVarDecl(for_->VarDecl);
     for_->FirstExpr = AnalyzeExpr(for_->FirstExpr);
     for_->Condition = AnalyzeExpr(for_->Condition);
     for_->IterExpr = AnalyzeExpr(for_->IterExpr);
     AnalyzeStmt(for_->Body);
+    DecrementScopingLevel();
 }
 
 void ClassAnalyzer::AnalyzeForEach(ForEachNode* forEach)
 {
     if (!forEach)
         return;
+    IncrementScopingLevel();
     AnalyzeVarDecl(forEach->VarDecl);
     forEach->Expr = AnalyzeExpr(forEach->Expr);
     AnalyzeStmt(forEach->Body);
+    DecrementScopingLevel();
 }
 
 void ClassAnalyzer::AnalyzeIf(IfNode* if_)
 {
     if (!if_)
         return;
+    IncrementScopingLevel();
     if_->Condition = AnalyzeExpr(if_->Condition);
     AnalyzeStmt(if_->ThenBranch);
     AnalyzeStmt(if_->ElseBranch);
+    DecrementScopingLevel();
 }
 
 void ClassAnalyzer::AnalyzeReturn(StmtNode* node)
@@ -343,7 +355,12 @@ void ClassAnalyzer::AnalyzeStmt(StmtNode* stmt)
     AnalyzeIf(stmt->If);
     stmt->Expr = AnalyzeExpr(stmt->Expr);
     AnalyzeReturn(stmt);
-    if (stmt->Block) { for (auto* s : stmt->Block->GetSeq()) { AnalyzeStmt(s); } }
+    if (stmt->Block)
+    {
+        IncrementScopingLevel();
+        for (auto* s : stmt->Block->GetSeq()) { AnalyzeStmt(s); }
+        DecrementScopingLevel();
+    }
 }
 
 
@@ -351,7 +368,7 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 {
     method->Class = CurrentClass;
     CurrentMethod = method;
-
+    CurrentScopingLevel = 1;
     if (const auto isMain = CurrentMethod->Identifier() == "Main"; isMain && CurrentMethod->IsStatic)
     {
         const auto noArguments = CurrentMethod->ArgumentDtos.empty();
@@ -410,9 +427,9 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 
     for (auto* var : method->Arguments->GetSeq())
         AnalyzeVarDecl(var);
-
+    IncrementScopingLevel();
     for (auto* stmt : method->Body->GetSeq()) { AnalyzeStmt(stmt); }
-
+    DecrementScopingLevel();
     if (method->IsOperatorOverload)
     {
         const auto classDataType = CurrentClass->ToDataType();
@@ -934,7 +951,7 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
         case AccessExpr::TypeT::Dot:
         {
             auto typeForPrevious = CalculateTypeForAccessExpr(access->Previous);
-            if (typeForPrevious.ArrayArity >=1 && access->Identifier == "Length")
+            if (typeForPrevious.ArrayArity >= 1 && access->Identifier == "Length")
             {
                 access->Type = AccessExpr::TypeT::ArrayLength;
                 access->AType = DataType::IntType;
@@ -989,7 +1006,7 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             const auto name = std::string{ access->Identifier };
             if (CurrentMethod)
             {
-                if (auto* var = CurrentMethod->FindVariableByName(name); var)
+                if (auto* var = CurrentMethod->FindVariableByName(name, CurrentScopingLevel); var)
                 {
                     type = var->AType;
                     access->AType = type;
@@ -998,7 +1015,9 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
                 }
             }
 
-            if (CurrentClass && !isVariableFound)
+            const auto currentMethodExistsAndNotStatic = CurrentMethod && !CurrentMethod->IsStatic;
+            const bool currentMethodDoesntExist = !CurrentMethod;
+            if (CurrentClass && !isVariableFound && (currentMethodDoesntExist || currentMethodExistsAndNotStatic))
             {
                 if (auto* var = CurrentClass->FindFieldByName(name); var)
                 {
@@ -1025,10 +1044,7 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             access->AType = access->Child->AType;
             return access->AType;
         }
-        case AccessExpr::TypeT::ArrayLength:
-        {
-            return access->AType;
-        }
+        case AccessExpr::TypeT::ArrayLength: { return access->AType; }
     }
     type.IsUnknown = true;
     access->AType = type;
@@ -1050,7 +1066,6 @@ ExprNode* ClassAnalyzer::ReplaceAssignmentsOnField(ExprNode* node)
         return converted;
     return node;
 }
-
 
 
 void ClassAnalyzer::ValidateTypename(DataType& dataType)
@@ -1197,10 +1212,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
                 else if (elementType == DataType::BoolType)
                     append(bytes, (uint8_t)Command::baload);
             }
-            else if (elementType.IsReferenceType())
-            {
-                append(bytes, (uint8_t)Command::aaload);
-            }
+            else if (elementType.IsReferenceType()) { append(bytes, (uint8_t)Command::aaload); }
             return bytes;
         }
         case AccessExpr::TypeT::ComplexArrayType:
@@ -1581,10 +1593,7 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
             else if (elementType == DataType::BoolType)
                 append(bytes, (uint8_t)Command::bastore);
         }
-        if (elementType.IsReferenceType())
-        {
-            append(bytes, (uint8_t)Command::aastore);
-        }
+        if (elementType.IsReferenceType()) { append(bytes, (uint8_t)Command::aastore); }
         return bytes;
     }
 

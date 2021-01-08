@@ -113,8 +113,8 @@ ExprNode* ExprNode::ToAssignOnField() const
 ExprNode* ExprNode::ToComplexArrayNew(std::vector<std::string>& errors) const
 {
     const bool isArrayNew = Type == TypeT::SimpleNew
-        && TypeNode->Access
-        && TypeNode->Access->Type == AccessExpr::TypeT::ArrayElementExpr;
+                            && TypeNode->Access
+                            && TypeNode->Access->Type == AccessExpr::TypeT::ArrayElementExpr;
 
     if (!isArrayNew)
         return nullptr;

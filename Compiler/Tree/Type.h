@@ -18,16 +18,15 @@ inline DataType ToDataType(StandardType standard)
     switch (standard)
     {
         case StandardType::Char:
-            return { DataType::TypeT::Char, false };
+            return { DataType::TypeT::Char };
         case StandardType::Int:
-            return { DataType::TypeT::Int, false };
+            return { DataType::TypeT::Int };
         case StandardType::Bool:
-            return { DataType::TypeT::Bool, false };
+            return { DataType::TypeT::Bool };
         case StandardType::Float:
-            return { DataType::TypeT::Float, false };
+            return { DataType::TypeT::Float };
         case StandardType::String:
-            return { DataType::TypeT::String, false };
-        default: ;
+            return STD_STRING_TYPE;
     }
     return {};
 }

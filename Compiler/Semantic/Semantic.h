@@ -31,6 +31,9 @@ struct Semantic
         if (AllMains.empty()) { Errors.insert("Cannot run a program without an entry point"); }
     }
 
+    static ClassDeclNode* CreateStringClass();
+
+
     void CheckSystemNamespace()
     {
         for (const auto* _namespace : program->Namespaces->GetSeq())

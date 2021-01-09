@@ -926,9 +926,8 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             access->AType = type;
             return type;
         case AccessExpr::TypeT::String:
-            type.AType = DataType::TypeT::String;
-            access->AType = type;
-            return type;
+            access->AType = STD_STRING_TYPE;
+            return access->AType;
         case AccessExpr::TypeT::Char:
             type.AType = DataType::TypeT::Char;
             access->AType = type;
@@ -1269,10 +1268,21 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
         case AccessExpr::TypeT::String:
         {
             Bytes bytes;
-            const auto constantId = file.Constants.FindString(expr->String);
-            const auto constantIdBytes = ToBytes(constantId);
+
+            const auto stringClassId = file.Constants.FindClass(STD_STRING_TYPE.ToTypename());
+            append(bytes, (uint8_t)Command::new_);
+            append(bytes, ToBytes(stringClassId));
+            append(bytes, (uint8_t)Command::dup);
+
+            const auto stringLiteralId = file.Constants.FindString(expr->String);
             append(bytes, (uint8_t)Command::ldc_w);
-            append(bytes, constantIdBytes);
+            append(bytes, ToBytes(stringLiteralId));
+
+            const auto constructorId = file.Constants.FindMethodRef(STD_STRING_TYPE.ToTypename(),
+                                                                    STD_STRING_CONSTRUCTOR_INFO.Name,
+                                                                    STD_STRING_CONSTRUCTOR_INFO.Descriptor);
+            append(bytes, (uint8_t)Command::invokespecial);
+            append(bytes, ToBytes(constructorId));
             return bytes;
         }
         case AccessExpr::TypeT::Char:

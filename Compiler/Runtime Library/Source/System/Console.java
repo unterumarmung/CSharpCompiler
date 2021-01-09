@@ -5,6 +5,7 @@ import java.util.Scanner;
 
 public class Console {
     Scanner in = new Scanner(System.in);
+
     //Функции печати в консоль в строку
     public void WriteLine(int value) {
         System.out.println(value);
@@ -19,7 +20,7 @@ public class Console {
     }
 
     public void WriteLine(String value) {
-        System.out.println(value);
+        System.out.println(value.strVal);
     }
 
     public void WriteLine(boolean value) {
@@ -28,13 +29,11 @@ public class Console {
 
     //Функции чтения из консоли
     public int ReadInt() {
-        int value = in.nextInt();
-        return value;
+        return in.nextInt();
     }
 
     public float ReadFloat() {
-        float value = in.nextInt();
-        return value;
+        return in.nextFloat();
     }
 
     public char ReadChar() {
@@ -48,13 +47,11 @@ public class Console {
     }
 
     public String ReadString() {
-        String value = in.next();
-        return value;
+        return new String(in.next());
     }
 
     public boolean ReadBool() {
-        boolean value = in.nextBoolean();
-        return value;
+        return in.nextBoolean();
     }
 
     //Функции печати в консоль
@@ -71,7 +68,7 @@ public class Console {
     }
 
     public void Write(String value) {
-        System.out.print(value);
+        System.out.print(value.strVal);
     }
 
     public void Write(boolean value) {

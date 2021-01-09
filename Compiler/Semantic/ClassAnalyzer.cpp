@@ -222,8 +222,11 @@ void ClassAnalyzer::AnalyzeMemberSignatures()
     for (auto* method : CurrentClass->Members->Methods)
     {
         method->Class = CurrentClass;
-        method->AReturnType = ToDataType(method->Type);
-        ValidateTypename(method->AReturnType);
+        if (Namespace->NamespaceName != "System")
+        {
+            method->AReturnType = ToDataType(method->Type);
+            ValidateTypename(method->AReturnType);
+        }
         for (auto* var : method->Arguments->GetSeq())
             AnalyzeVarDecl(var);
     }
@@ -799,6 +802,13 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
                              "' are not compatible with operation " + ToString(node->Type));
         }
         else { node->AType = DataType::VoidType; }
+
+        if (node->Type == ExprNode::TypeT::AssignOnField && node->Field->IsFinal)
+        {
+            Errors.push_back("You cannot assign to final field named " + std::string{ node->Field->VarDecl->Identifier }
+                             + " of class " + node->Field->Class->ToDataType().ToTypename());
+        }
+
         return;
     }
 
@@ -919,9 +929,8 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             access->AType = type;
             return type;
         case AccessExpr::TypeT::String:
-            type.AType = DataType::TypeT::String;
-            access->AType = type;
-            return type;
+            access->AType = STD_STRING_TYPE;
+            return access->AType;
         case AccessExpr::TypeT::Char:
             type.AType = DataType::TypeT::Char;
             access->AType = type;
@@ -1262,10 +1271,21 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
         case AccessExpr::TypeT::String:
         {
             Bytes bytes;
-            const auto constantId = file.Constants.FindString(expr->String);
-            const auto constantIdBytes = ToBytes(constantId);
+
+            const auto stringClassId = file.Constants.FindClass(STD_STRING_TYPE.ToTypename());
+            append(bytes, (uint8_t)Command::new_);
+            append(bytes, ToBytes(stringClassId));
+            append(bytes, (uint8_t)Command::dup);
+
+            const auto stringLiteralId = file.Constants.FindString(expr->String);
             append(bytes, (uint8_t)Command::ldc_w);
-            append(bytes, constantIdBytes);
+            append(bytes, ToBytes(stringLiteralId));
+
+            const auto constructorId = file.Constants.FindMethodRef(STD_STRING_TYPE.ToTypename(),
+                                                                    STD_STRING_CONSTRUCTOR_INFO.Name,
+                                                                    STD_STRING_CONSTRUCTOR_INFO.Descriptor);
+            append(bytes, (uint8_t)Command::invokespecial);
+            append(bytes, ToBytes(constructorId));
             return bytes;
         }
         case AccessExpr::TypeT::Char:
@@ -1290,8 +1310,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
             if (expr->ActualVar)
             {
                 auto* const var = expr->ActualVar;
-                if (var->AType == DataType::IntType || var->AType == DataType::BoolType || var->AType ==
-                    DataType::CharType)
+                if (var->AType.IsPrimitiveType())
                 {
                     append(bytes, (uint8_t)Command::iload);
                     append(bytes, (uint8_t)var->PositionInMethod);
@@ -1805,7 +1824,7 @@ Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
         append(codeBytes, (uint8_t)Command::aload_0);
         append(codeBytes, (uint8_t)Command::invokespecial);
         const auto javaBaseObjectConstructor = classFile.Constants.FindMethodRef(
-             JAVA_BASE_OBJECT.ToTypename(),
+             JAVA_OBJECT_TYPE.ToTypename(),
              "<init>",
              "()V"
             );
@@ -1874,7 +1893,7 @@ Bytes ClassAnalyzer::ToBytes()
 {
     Bytes bytes;
     const auto classConstantId = File.Constants.FindClass(CurrentClass->ToDataType().ToTypename());
-    const auto superClassId = File.Constants.FindClass(JAVA_BASE_OBJECT.ToTypename());
+    const auto superClassId = File.Constants.FindClass(JAVA_OBJECT_TYPE.ToTypename());
     const auto accessFlags = AccessFlags::Super | AccessFlags::Public;
     append(bytes, ::ToBytes((uint16_t)accessFlags));
     append(bytes, ::ToBytes(classConstantId));

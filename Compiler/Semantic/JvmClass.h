@@ -174,3 +174,26 @@ inline std::string ToString(std::vector<DataType> const& container)
     }
     return str;
 }
+
+const inline DataType JAVA_OBJECT_TYPE = []
+{
+    DataType type{ DataType::TypeT::Complex };
+    type.ComplexType = { "java", "lang", "Object" };
+    return type;
+}();
+
+const inline DataType STD_STRING_TYPE = []
+{
+    DataType type{ DataType::TypeT::Complex };
+    type.ComplexType = { "System", "String" };
+    return type;
+}();
+
+constexpr inline struct
+{
+    std::string_view Name;
+    std::string_view Descriptor;
+} STD_STRING_CONSTRUCTOR_INFO{
+    "<init>",
+    "(Ljava/lang/String;)V"
+};

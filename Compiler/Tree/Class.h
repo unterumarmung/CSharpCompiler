@@ -15,6 +15,8 @@ struct FieldDeclNode final : Node
     VarDeclNode* VarDecl;
     ClassDeclNode* Class{};
 
+    bool IsFinal{};
+
     FieldDeclNode(const VisibilityModifier visibility, VarDeclNode* const varDecl)
         : Visibility{ visibility }
       , VarDecl{ varDecl }

@@ -222,8 +222,11 @@ void ClassAnalyzer::AnalyzeMemberSignatures()
     for (auto* method : CurrentClass->Members->Methods)
     {
         method->Class = CurrentClass;
-        method->AReturnType = ToDataType(method->Type);
-        ValidateTypename(method->AReturnType);
+        if (Namespace->NamespaceName != "System")
+        {
+            method->AReturnType = ToDataType(method->Type);
+            ValidateTypename(method->AReturnType);
+        }
         for (auto* var : method->Arguments->GetSeq())
             AnalyzeVarDecl(var);
     }
@@ -1307,8 +1310,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
             if (expr->ActualVar)
             {
                 auto* const var = expr->ActualVar;
-                if (var->AType == DataType::IntType || var->AType == DataType::BoolType || var->AType ==
-                    DataType::CharType)
+                if (var->AType.IsPrimitiveType())
                 {
                     append(bytes, (uint8_t)Command::iload);
                     append(bytes, (uint8_t)var->PositionInMethod);
@@ -1822,7 +1824,7 @@ Bytes ToBytes(MethodDeclNode* method, ClassFile& classFile)
         append(codeBytes, (uint8_t)Command::aload_0);
         append(codeBytes, (uint8_t)Command::invokespecial);
         const auto javaBaseObjectConstructor = classFile.Constants.FindMethodRef(
-             JAVA_BASE_OBJECT.ToTypename(),
+             JAVA_OBJECT_TYPE.ToTypename(),
              "<init>",
              "()V"
             );
@@ -1891,7 +1893,7 @@ Bytes ClassAnalyzer::ToBytes()
 {
     Bytes bytes;
     const auto classConstantId = File.Constants.FindClass(CurrentClass->ToDataType().ToTypename());
-    const auto superClassId = File.Constants.FindClass(JAVA_BASE_OBJECT.ToTypename());
+    const auto superClassId = File.Constants.FindClass(JAVA_OBJECT_TYPE.ToTypename());
     const auto accessFlags = AccessFlags::Super | AccessFlags::Public;
     append(bytes, ::ToBytes((uint16_t)accessFlags));
     append(bytes, ::ToBytes(classConstantId));

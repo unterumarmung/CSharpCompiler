@@ -54,6 +54,17 @@ void ToDot(UsingDirectives* node, std::ostream& out);
     return res;
 }
 
+[[nodiscard]] std::string ReplaceAll(std::string str, const std::string& from, const std::string& to)
+{
+    size_t start_pos = 0;
+    while ((start_pos = str.find(from, start_pos)) != std::string::npos)
+    {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+    }
+    return str;
+}
+
 [[nodiscard]] std::string QualifiedNameToString(IdentifierList* identifiers)
 {
     if (!identifiers)
@@ -122,7 +133,7 @@ void ToDot(AccessExpr* const node, std::ostream& out, const bool isType)
             out << MakeNode(node->Id, std::to_string(node->Float) + nameSuffix);
             return;
         case AccessExpr::TypeT::String:
-            out << MakeNode(node->Id, "\\\"" + std::string{ node->String } + "\\\"" + nameSuffix);
+            out << MakeNode(node->Id, ReplaceAll(std::string{ node->String }, "\"", "\\\"") + nameSuffix);
             return;
         case AccessExpr::TypeT::Char:
             out << MakeNode(node->Id, "\'" + std::string{ node->Char } + "\'" + nameSuffix);
@@ -148,6 +159,7 @@ void ToDot(AccessExpr* const node, std::ostream& out, const bool isType)
             ToDot(node->Previous, out);
             out << MakeConnection(node->Id, node->Previous->Id, "call expr");
             ToDot(node->Arguments, out, node, true, "argument");
+            return;
         case AccessExpr::TypeT::ArrayLength:
             out << MakeNode(node->Id, "Get Array Length");
             ToDot(node->Previous, out);
@@ -192,7 +204,7 @@ void ToDot(ExprNode* const node, std::ostream& out)
                     ? "Cast to " + ToString(node->StandardTypeChild)
                     : ToString(node->Type);
 
-    name += "\nCalculated data type: "s + ToString(node->AType);
+    name += "\\nCalculated data type: "s + ToString(node->AType);
 
     out << MakeNode(node->Id, name);
 
@@ -252,7 +264,7 @@ void ToDot(ExprNode* const node, std::ostream& out)
 void ToDot(const VarDeclNode* node, std::ostream& out)
 {
     auto name = std::string{ node->Name() } + "\\nName = "s + std::string{ node->Identifier };
-    name += "\nCalculated data type: " + ToString(node->AType);
+    name += "\\nCalculated data type: " + ToString(node->AType);
     out << MakeNode(node->Id, name);
     if (node->VarType != nullptr)
     {

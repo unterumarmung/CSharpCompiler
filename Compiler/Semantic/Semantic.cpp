@@ -1,4 +1,126 @@
 #include "Semantic.h"
+
+NamespaceDeclNode* Semantic::CreateSystemNamespace() const
+{
+    std::vector<ClassDeclNode*> classes{ CreateConsoleClass(), CreateStringClass() };
+
+    auto* systemMembers = new NamespaceMembersNode();
+    for (auto* class_ : classes) { systemMembers->Add(class_); }
+    auto* systemNamespace = new NamespaceDeclNode("System", systemMembers);
+    for (auto* class_ : classes)
+    {
+        class_->Namespace = systemNamespace;
+        ClassAnalyzer analyzer(class_, systemNamespace, program->Namespaces); // Создаёт конструктор по умолчанию
+        analyzer.AnalyzeMemberSignatures();
+    }
+    return systemNamespace;
+}
+
+ClassDeclNode* Semantic::CreateConsoleClass()
+{
+    auto* consoleClassMembers = new ClassMembersNode();
+    auto& consoleMethods = consoleClassMembers->Methods;
+
+    [[maybe_unused]] auto* readIntMethod = [&]
+    {
+        auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "ReadInt",
+                                          MethodArguments::MakeEmpty(), nullptr);
+        method->AReturnType = DataType::IntType;
+        method->AnalyzeArguments();
+        consoleMethods.push_back(method);
+        return method;
+    }();
+    [[maybe_unused]] auto* writeLineIntMethod = [&]
+    {
+        auto* arg = new VarDeclNode(new TypeNode(StandardType::Int), "arg", nullptr);
+        auto* args = MethodArguments::MakeEmpty();
+        args->Add(arg);
+        auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "WriteLine", args, nullptr);
+        method->AReturnType = DataType::VoidType;
+        method->AnalyzeArguments();
+        consoleMethods.push_back(method);
+        return method;
+    }();
+
+    [[maybe_unused]] auto* writeIntMethod = [&]
+    {
+        auto* arg = new VarDeclNode(new TypeNode(StandardType::Int), "arg", nullptr);
+        auto* args = MethodArguments::MakeEmpty();
+        args->Add(arg);
+        auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "Write", args, nullptr);
+        method->AReturnType = DataType::VoidType;
+        method->AnalyzeArguments();
+        consoleMethods.push_back(method);
+        return method;
+    }();
+
+    [[maybe_unused]] auto* writeLineBoolMethod = [&]
+    {
+        auto* arg = new VarDeclNode(new TypeNode(StandardType::Bool), "arg", nullptr);
+        auto* args = MethodArguments::MakeEmpty();
+        args->Add(arg);
+        auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "WriteLine", args, nullptr);
+        method->AReturnType = DataType::VoidType;
+        method->AnalyzeArguments();
+        consoleMethods.push_back(method);
+        return method;
+    }();
+
+    [[maybe_unused]] auto* writeLineStrMethod = [&]
+    {
+        auto* arg = new VarDeclNode(new TypeNode(StandardType::String), "arg", nullptr);
+        auto* args = MethodArguments::MakeEmpty();
+        args->Add(arg);
+        auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "WriteLine", args, nullptr);
+        method->AReturnType = DataType::VoidType;
+        method->AnalyzeArguments();
+        consoleMethods.push_back(method);
+        return method;
+    }();
+
+    [[maybe_unused]] auto* writeStrMethod = [&]
+    {
+        auto* arg = new VarDeclNode(new TypeNode(StandardType::String), "arg", nullptr);
+        auto* args = MethodArguments::MakeEmpty();
+        args->Add(arg);
+        auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "Write", args, nullptr);
+        method->AReturnType = DataType::VoidType;
+        method->AnalyzeArguments();
+        consoleMethods.push_back(method);
+        return method;
+    }();
+
+    [[maybe_unused]] auto* writeLineCharMethod = [&]
+    {
+        auto* arg = new VarDeclNode(new TypeNode(StandardType::Char), "arg", nullptr);
+        auto* args = MethodArguments::MakeEmpty();
+        args->Add(arg);
+        auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "WriteLine", args, nullptr);
+        method->AReturnType = DataType::VoidType;
+        method->AnalyzeArguments();
+        consoleMethods.push_back(method);
+        return method;
+    }();
+
+    [[maybe_unused]] auto* writeCharMethod = [&]
+    {
+        auto* arg = new VarDeclNode(new TypeNode(StandardType::Char), "arg", nullptr);
+        auto* args = MethodArguments::MakeEmpty();
+        args->Add(arg);
+        auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, "Write", args, nullptr);
+        method->AReturnType = DataType::VoidType;
+        method->AnalyzeArguments();
+        consoleMethods.push_back(method);
+        return method;
+    }();
+
+    auto* consoleClass = new ClassDeclNode("Console", nullptr, consoleClassMembers);
+
+    for (auto* method : consoleMethods) { method->Class = consoleClass; }
+
+    return consoleClass;
+}
+
 ClassDeclNode* Semantic::CreateStringClass()
 {
     auto* members = new ClassMembersNode();

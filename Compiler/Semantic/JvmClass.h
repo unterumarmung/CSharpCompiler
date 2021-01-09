@@ -174,6 +174,14 @@ inline std::string ToString(std::vector<DataType> const& container)
     }
     return str;
 }
+
+const inline DataType JAVA_OBJECT_TYPE = []
+{
+    DataType type{ DataType::TypeT::Complex };
+    type.ComplexType = { "java", "lang", "Object" };
+    return type;
+}();
+
 const inline DataType STD_STRING_TYPE = []
 {
     DataType type{ DataType::TypeT::Complex };

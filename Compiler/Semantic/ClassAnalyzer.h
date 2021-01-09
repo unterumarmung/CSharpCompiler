@@ -15,13 +15,6 @@ inline void append(Bytes& bytes, Bytes const& value) { bytes.insert(bytes.end(),
 
 inline void append(Bytes& bytes, std::string_view value) { bytes.insert(bytes.end(), value.begin(), value.end()); }
 
-const inline DataType JAVA_BASE_OBJECT = []
-{
-    DataType type{ DataType::TypeT::Complex };
-    type.ComplexType = { "java", "lang", "Object" };
-    return type;
-}();
-
 Bytes ToBytes(uint32_t n);
 
 Bytes ToBytes(uint16_t n);

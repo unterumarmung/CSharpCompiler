@@ -799,6 +799,13 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
                              "' are not compatible with operation " + ToString(node->Type));
         }
         else { node->AType = DataType::VoidType; }
+
+        if (node->Type == ExprNode::TypeT::AssignOnField && node->Field->IsFinal)
+        {
+            Errors.push_back("You cannot assign to final field named " + std::string{ node->Field->VarDecl->Identifier }
+                             + " of class " + node->Field->Class->ToDataType().ToTypename());
+        }
+
         return;
     }
 

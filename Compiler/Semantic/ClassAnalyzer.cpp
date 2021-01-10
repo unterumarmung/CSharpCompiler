@@ -888,6 +888,15 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         CalculateTypesForExpr(node->Child);
         node->AType = node->Child->AType;
 
+        if (node->Type == ExprNode::TypeT::Increment || node->Type == ExprNode::TypeT::Decrement)
+        {
+            if (node->Child->AType != DataType::IntType)
+            {
+                Errors.push_back("Type '" + ToString(node->Child->AType) + "' is not compatible with operation " +
+                    ToString(node->Type));
+            }
+        }
+
         if (IsLogical(node->Type) && node->Child->AType != boolType)
         {
             node->AType = boolType;
@@ -1290,8 +1299,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
             if (expr->ActualVar)
             {
                 auto* const var = expr->ActualVar;
-                if (var->AType == DataType::IntType || var->AType == DataType::BoolType || var->AType ==
-                    DataType::CharType)
+                if (var->AType.IsPrimitiveType())
                 {
                     append(bytes, (uint8_t)Command::iload);
                     append(bytes, (uint8_t)var->PositionInMethod);
@@ -1397,8 +1405,9 @@ enum class ArrayType : uint8_t
 
 Bytes ToBytes(ExprNode* expr, ClassFile& file)
 {
-    if (expr->Type == ExprNode::TypeT::Increment)
+    if (expr->Type == ExprNode::TypeT::Increment || expr->Type == ExprNode::TypeT::Decrement)
     {
+        Bytes bytes;
         auto* access = expr->Access;
         if (!access)
             throw std::runtime_error{ "Internal error: increment not for a variable or field" };
@@ -1408,12 +1417,27 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
 
         if (variable)
         {
-
+            auto varIndex = (uint8_t)variable->PositionInMethod;
+            // Загрузить команду iinc
+            append(bytes, (uint8_t)Command::iinc);
+            // Загрузить varIndex
+            append(bytes, varIndex);
+            // Загрузить константу 1 / -1
+            int8_t incVal = expr->Type == ExprNode::TypeT::Increment ? 1 : -1;
+            append(bytes, incVal);
+            // Загрузить эту же переменную iload
+            append(bytes, (uint8_t)Command::iload);
+            append(bytes, (uint8_t)variable->PositionInMethod);
         }
         if (field)
         {
-
+            // Загрузить поле (getfield)
+            // Загрузить 1 на стек (iconst_1)
+            // Загрузить комманду iadd / isub
+            // Загрузить команду dup
+            // Сделать putfield
         }
+        return bytes;
     }
 
     if (IsComparison(expr->Type) || expr->Type == ExprNode::TypeT::Not)

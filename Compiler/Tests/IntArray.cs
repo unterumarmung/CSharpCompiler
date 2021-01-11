@@ -11,7 +11,7 @@ namespace IntArray
             {
                 array[i] = i;
             }
-            
+
             for (int i = 0; i < array.Length; ++i)
             {
                 Console.WriteLine(array[i]);

@@ -1408,7 +1408,7 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
     if (expr->Type == ExprNode::TypeT::Increment || expr->Type == ExprNode::TypeT::Decrement)
     {
         Bytes bytes;
-        auto* access = expr->Access;
+        auto* access = expr->Child->Access;
         if (!access)
             throw std::runtime_error{ "Internal error: increment not for a variable or field" };
 

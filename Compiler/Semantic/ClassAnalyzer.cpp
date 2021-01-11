@@ -232,7 +232,11 @@ void ClassAnalyzer::AnalyzeMemberSignatures()
             ValidateTypename(method->AReturnType);
         }
         for (auto* var : method->Arguments->GetSeq())
+        {
             AnalyzeVarDecl(var);
+            ValidateTypename(var->AType);
+        }
+        for (auto& arg : method->ArgumentDtos) { ValidateTypename(arg.Type); }
     }
     for (auto* field : CurrentClass->Members->Fields)
     {
@@ -509,7 +513,11 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
     value->Namespace = this->Namespace;
 
     for (auto* field : value->Members->Fields) { AnalyzeField(field); }
-    for (auto* method : value->Members->Methods) { method->AnalyzeArguments(); }
+    for (auto* method : value->Members->Methods)
+    {
+        method->AnalyzeArguments();
+        for (auto& arg : method->ArgumentDtos) { ValidateTypename(arg.Type); }
+    }
     for (auto* method : value->Members->Methods) { AnalyzeMethod(method); }
 }
 
@@ -587,11 +595,15 @@ void ClassAnalyzer::AnalyzeSimpleMethodCall(AccessExpr* expr)
         argument = AnalyzeExpr(argument);
 
     const auto methodName = expr->Identifier;
-    const auto callTypes = [expr]()
+    const auto callTypes = [expr, this]()
     {
         auto const& arguments = expr->Arguments->GetSeq();
         std::vector<DataType> types(arguments.size());
-        std::transform(arguments.begin(), arguments.end(), types.begin(), [](auto& arg) { return arg->AType; });
+        std::transform(arguments.begin(), arguments.end(), types.begin(), [this](auto& arg)
+        {
+            ValidateTypename(arg->AType);
+            return arg->AType;
+        });
         return types;
     }();
 
@@ -639,11 +651,15 @@ void ClassAnalyzer::AnalyzeDotMethodCall(AccessExpr* expr)
     }
 
     const auto methodName = expr->Identifier;
-    const auto callTypes = [expr]()
+    const auto callTypes = [expr, this]()
     {
         auto const& arguments = expr->Arguments->GetSeq();
         std::vector<DataType> types(arguments.size());
-        std::transform(arguments.begin(), arguments.end(), types.begin(), [](auto& arg) { return arg->AType; });
+        std::transform(arguments.begin(), arguments.end(), types.begin(), [this](auto& arg)
+        {
+            ValidateTypename(arg->AType);
+            return arg->AType;
+        });
         return types;
     }();
 
@@ -1364,7 +1380,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
 
                 const auto fieldRefId = file.Constants.FindFieldRef(field->Class->ToDataType().ToTypename(),
                                                                     field->VarDecl->Identifier,
-                                                                    field->VarDecl->AType.ToTypename());
+                                                                    field->VarDecl->AType.ToDescriptor());
                 append(bytes, ToBytes(fieldRefId));
                 return bytes;
             }
@@ -1565,6 +1581,55 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
             return bytes;
         }
         throw std::runtime_error{ "only variable can be assigned" };
+    }
+
+    if (IsLogical(expr->Type) && IsBinary(expr->Type))
+    {
+        Bytes bytes;
+        const auto leftBytes = ToBytes(expr->Left, file);
+        const auto rightBytes = ToBytes(expr->Right, file);
+
+        append(bytes, leftBytes);
+
+        Command command;
+        Bytes firstJumpBytes;
+
+        constexpr auto ifeqLength = 3;
+        constexpr auto gotoLength = 3;
+        constexpr auto iconstLength = 1;
+
+        const auto trueValueOffset = rightBytes.size() + ifeqLength + iconstLength;
+        const auto falseValueOffset = rightBytes.size() + ifeqLength + iconstLength * 2 + gotoLength;
+
+        if (expr->Type == ExprNode::TypeT::And)
+        {
+            command = Command::ifeq;
+            firstJumpBytes = ToBytes((uint16_t)falseValueOffset);
+        }
+        else if (expr->Type == ExprNode::TypeT::Or)
+        {
+            command = Command::ifne;
+            firstJumpBytes = ToBytes((uint16_t)trueValueOffset);
+        }
+
+        append(bytes, (uint8_t)command);
+        append(bytes, firstJumpBytes);
+
+        append(bytes, rightBytes);
+
+        append(bytes, (uint8_t)Command::ifeq);
+        append(bytes, ToBytes((uint16_t)(ifeqLength + gotoLength + iconstLength)));
+
+        append(bytes, (uint8_t)Command::iconst_1);
+
+        append(bytes, (uint8_t)Command::goto_);
+        append(bytes, ToBytes((uint16_t)(gotoLength + iconstLength)));
+
+        append(bytes, (uint8_t)Command::iconst_0);
+
+        append(bytes, (uint8_t)Command::nop);
+
+        return bytes;
     }
 
     if (IsBinary(expr->Type))
@@ -1832,12 +1897,12 @@ Bytes ToBytes(WhileNode* while_, ClassFile& file)
     return bytes;
 }
 
-Bytes ToBytes(DoWhileNode* dowhile_, ClassFile& file)
+Bytes ToBytes(DoWhileNode* doWhile, ClassFile& file)
 {
     Bytes bytes;
 
-    const auto conditionBytes = ToBytes(dowhile_->Condition, file);
-    const auto bodyBytes = ToBytes(dowhile_->Body, file);
+    const auto conditionBytes = ToBytes(doWhile->Condition, file);
+    const auto bodyBytes = ToBytes(doWhile->Body, file);
 
     constexpr auto ifeqCommandLength = 3;
     constexpr auto gotoCommandLength = 3;

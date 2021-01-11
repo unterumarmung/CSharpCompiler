@@ -898,6 +898,15 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         CalculateTypesForExpr(node->Child);
         node->AType = node->Child->AType;
 
+        if (node->Type == ExprNode::TypeT::Increment || node->Type == ExprNode::TypeT::Decrement)
+        {
+            if (node->Child->AType != DataType::IntType)
+            {
+                Errors.push_back("Type '" + ToString(node->Child->AType) + "' is not compatible with operation " +
+                    ToString(node->Type));
+            }
+        }
+
         if (IsLogical(node->Type) && node->Child->AType != boolType)
         {
             node->AType = boolType;
@@ -1416,6 +1425,41 @@ enum class ArrayType : uint8_t
 
 Bytes ToBytes(ExprNode* expr, ClassFile& file)
 {
+    if (expr->Type == ExprNode::TypeT::Increment || expr->Type == ExprNode::TypeT::Decrement)
+    {
+        Bytes bytes;
+        auto* access = expr->Child->Access;
+        if (!access)
+            throw std::runtime_error{ "Internal error: increment not for a variable or field" };
+
+        FieldDeclNode* field = access->ActualField;
+        VarDeclNode* variable = access->ActualVar;
+
+        if (variable)
+        {
+            auto varIndex = (uint8_t)variable->PositionInMethod;
+            // Загрузить команду iinc
+            append(bytes, (uint8_t)Command::iinc);
+            // Загрузить varIndex
+            append(bytes, varIndex);
+            // Загрузить константу 1 / -1
+            int8_t incVal = expr->Type == ExprNode::TypeT::Increment ? 1 : -1;
+            append(bytes, incVal);
+            // Загрузить эту же переменную iload
+            append(bytes, (uint8_t)Command::iload);
+            append(bytes, (uint8_t)variable->PositionInMethod);
+        }
+        if (field)
+        {
+            // Загрузить поле (getfield)
+            // Загрузить 1 на стек (iconst_1)
+            // Загрузить комманду iadd / isub
+            // Загрузить команду dup
+            // Сделать putfield
+        }
+        return bytes;
+    }
+
     if (IsComparison(expr->Type) || expr->Type == ExprNode::TypeT::Not)
     {
         Bytes bytes;
@@ -1765,10 +1809,77 @@ Bytes ToBytes(WhileNode* while_, ClassFile& file)
     return bytes;
 }
 
+Bytes ToBytes(DoWhileNode* dowhile_, ClassFile& file)
+{
+    Bytes bytes;
+
+    const auto conditionBytes = ToBytes(dowhile_->Condition, file);
+    const auto bodyBytes = ToBytes(dowhile_->Body, file);
+
+    constexpr auto ifeqCommandLength = 3;
+    constexpr auto gotoCommandLength = 3;
+    const auto gotoBytesOffset = -static_cast<int16_t>(conditionBytes.size() + bodyBytes.size() + ifeqCommandLength);
+    const auto ifeqBytesOffset = static_cast<int16_t>(bodyBytes.size() + ifeqCommandLength + gotoCommandLength);
+    // Тело цикла
+    append(bytes, bodyBytes);
+
+    // Загружаем условие
+    append(bytes, conditionBytes);
+
+    // Проверяем результат условия на ноль
+    append(bytes, (uint8_t)Command::ifeq);
+    append(bytes, ToBytes(ifeqBytesOffset));
+
+    // Тело цикла
+    append(bytes, bodyBytes);
+
+    // Прыжок на проверку условия цикла
+    append(bytes, (uint8_t)Command::goto_);
+    append(bytes, ToBytes((int16_t)gotoBytesOffset));
+
+    append(bytes, (uint8_t)Command::nop);
+
+    return bytes;
+}
+
 Bytes ToBytes(ForNode* for_, ClassFile& file)
 {
     Bytes bytes;
 
+    Bytes firstBytes;
+
+    if (for_->FirstExpr)
+        append(bytes, ToBytes(for_->FirstExpr, file));
+    else if (for_->VarDecl)
+        append(bytes, ToBytes(for_->VarDecl, file));
+
+    const auto conditionBytes = ToBytes(for_->Condition, file);
+    const auto iterExprBytes = ToBytes(for_->IterExpr, file);
+    auto bodyBytes = ToBytes(for_->Body, file);
+    append(bodyBytes, iterExprBytes);
+
+    constexpr auto ifeqCommandLength = 3;
+    constexpr auto gotoCommandLength = 3;
+    const auto gotoBytesOffset = -static_cast<int16_t>(conditionBytes.size() + bodyBytes.size() + ifeqCommandLength);
+    const auto ifeqBytesOffset = static_cast<int16_t>(bodyBytes.size() + ifeqCommandLength + gotoCommandLength);
+
+    append(bytes, firstBytes);
+
+    // Загружаем условие
+    append(bytes, conditionBytes);
+
+    // Проверяем результат условия на ноль
+    append(bytes, (uint8_t)Command::ifeq);
+    append(bytes, ToBytes(ifeqBytesOffset));
+
+    // Тело цикла
+    append(bytes, bodyBytes);
+
+    // Прыжок на проверку условия цикла
+    append(bytes, (uint8_t)Command::goto_);
+    append(bytes, ToBytes((int16_t)gotoBytesOffset));
+
+    append(bytes, (uint8_t)Command::nop);
 
     return bytes;
 }
@@ -1788,7 +1899,7 @@ Bytes ToBytes(StmtNode* stmt, ClassFile& file)
         case StmtNode::TypeT::While:
             return ToBytes(stmt->While, file);
         case StmtNode::TypeT::DoWhile:
-            break;
+            return ToBytes(stmt->DoWhile, file);
         case StmtNode::TypeT::For:
             return ToBytes(stmt->For, file);
         case StmtNode::TypeT::Foreach:

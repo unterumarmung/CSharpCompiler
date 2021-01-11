@@ -4,21 +4,17 @@ namespace IntArray
     {
         public static void Main()
         {
+            System.Console Console = new System.Console;
             int[] array = new int[10];
 
-            int i = 0;
-            while(i < array.Length)
+            for (int i = 0; i < array.Length; ++i)
             {
                 array[i] = i;
-                i = i + 1;
             }
-
-            i = 0;
-            while(i < array.Length)
+            
+            for (int i = 0; i < array.Length; ++i)
             {
-                System.Console Console = new System.Console;
                 Console.WriteLine(array[i]);
-                i = i + 1;
             }
         }
     }

@@ -148,6 +148,12 @@ inline bool IsOverloadable(const ExprNode::TypeT type)
         case ExprNode::TypeT::BinMinus:
         case ExprNode::TypeT::Multiply:
         case ExprNode::TypeT::Divide:
+        case ExprNode::TypeT::Less:
+        case ExprNode::TypeT::Greater:
+        case ExprNode::TypeT::Equal:
+        case ExprNode::TypeT::NotEqual:
+        case ExprNode::TypeT::GreaterOrEqual:
+        case ExprNode::TypeT::LessOrEqual:
             return true;
         default:
             return false;

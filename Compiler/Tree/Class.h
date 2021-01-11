@@ -61,7 +61,13 @@ enum class OperatorType
     Plus,
     Minus,
     Multiply,
-    Divide
+    Divide,
+    Less,
+    Greater,
+    Equal,
+    NotEqual,
+    GreaterOrEqual,
+    LessOrEqual
 };
 
 inline OperatorType ToOperatorOverload(const ExprNode::TypeT type)
@@ -78,6 +84,18 @@ inline OperatorType ToOperatorOverload(const ExprNode::TypeT type)
             return OperatorType::Multiply;
         case ExprNode::TypeT::Divide:
             return OperatorType::Divide;
+        case ExprNode::TypeT::Less:
+            return OperatorType::Less;
+        case ExprNode::TypeT::Greater:
+            return OperatorType::Greater;
+        case ExprNode::TypeT::Equal:
+            return OperatorType::Equal;
+        case ExprNode::TypeT::NotEqual:
+            return OperatorType::NotEqual;
+        case ExprNode::TypeT::GreaterOrEqual:
+            return OperatorType::GreaterOrEqual;
+        case ExprNode::TypeT::LessOrEqual:
+            return OperatorType::LessOrEqual;
     }
     return {};
 }
@@ -172,6 +190,19 @@ public:
                 return "__operator_multiply";
             case OperatorType::Divide:
                 return "__operator_divide";
+            case OperatorType::Less:
+                return "__operator_less";
+            case OperatorType::Greater:
+                return "__operator_greater";
+            case OperatorType::Equal:
+                return "__operator_equal";
+            case OperatorType::NotEqual:
+                return "__operator_not_equal";
+            case OperatorType::GreaterOrEqual:
+                return "__operator_greater_or_equal";
+            case OperatorType::LessOrEqual:
+                return "__operator_less_or_equal";
+            default: ;
         }
         return {};
     }

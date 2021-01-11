@@ -1464,6 +1464,22 @@ enum class ArrayType : uint8_t
 
 Bytes ToBytes(ExprNode* expr, ClassFile& file)
 {
+    if (expr->OverloadedOperation)
+    {
+        Bytes bytes;
+        const auto leftBytes = ToBytes(expr->Left, file);
+        const auto rightBytes = ToBytes(expr->Right, file);
+        append(bytes, leftBytes);
+        append(bytes, rightBytes);
+        const auto operatorRef = file.Constants.FindMethodRef(expr->OverloadedOperation->Class->ToDataType().
+                                                                    ToTypename(),
+                                                              expr->OverloadedOperation->Identifier(),
+                                                              expr->OverloadedOperation->ToDescriptor());
+        append(bytes, (uint8_t)Command::invokestatic);
+        append(bytes, ToBytes(operatorRef));
+        return bytes;
+    }
+
     if (expr->Type == ExprNode::TypeT::Increment || expr->Type == ExprNode::TypeT::Decrement)
     {
         Bytes bytes;
@@ -1639,16 +1655,7 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         const auto rightBytes = ToBytes(expr->Right, file);
         append(bytes, leftBytes);
         append(bytes, rightBytes);
-        if (expr->OverloadedOperation)
-        {
-            const auto operatorRef = file.Constants.FindMethodRef(expr->OverloadedOperation->Class->ToDataType().
-                                                                        ToTypename(),
-                                                                  expr->OverloadedOperation->Identifier(),
-                                                                  expr->OverloadedOperation->ToDescriptor());
-            append(bytes, (uint8_t)Command::invokestatic);
-            append(bytes, ToBytes(operatorRef));
-        }
-        else if (expr->AType == DataType::IntType)
+        if (expr->AType.IsPrimitiveType())
         {
             switch (expr->Type) // NOLINT(clang-diagnostic-switch-enum)
             {

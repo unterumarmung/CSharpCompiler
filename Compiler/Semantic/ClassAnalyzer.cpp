@@ -809,6 +809,14 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
                              + " of class " + node->Field->Class->ToDataType().ToTypename());
         }
 
+        if (node->Type == ExprNode::TypeT::Assign)
+        {
+            const auto noVariable = !node->Left->Access->ActualVar;
+            const auto noField = !node->Left->Access->ActualField;
+            if (noField && noVariable)
+                Errors.push_back("Cannot assign");
+        }
+
         return;
     }
 

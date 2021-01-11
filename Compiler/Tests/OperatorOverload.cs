@@ -71,7 +71,7 @@ namespace OperatorOverload
         }
     }
 
-    public class MainClass
+    public class M
     {
         public static void Main()
         {

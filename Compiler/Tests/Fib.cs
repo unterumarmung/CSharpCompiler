@@ -1,6 +1,6 @@
 namespace Fib
 {
-    public class Main 
+    public class M
     {
         public int Fib(int n)
         {
@@ -19,7 +19,7 @@ namespace Fib
             Console.Write("Enter n: ");
             int n = Console.ReadInt();
 
-            var main = new Main;
+            var main = new M;
             Console.Write("Fib(n) = ");
             Console.WriteLine(main.Fib(n));
         }

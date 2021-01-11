@@ -1,17 +1,17 @@
 namespace ComplexArray
 {
-    public class Main
+    public class M
     { 
         public int a;
 
         public static void Main()
         {
-            Main[] array = new Main[10];
+            Main[] array = new M[10];
 
             int i = 0;
             while (i < array.Length)
             {
-                array[i] = new Main;
+                array[i] = new M;
                 i = i + 1;
             }   
 

@@ -1,6 +1,6 @@
 namespace DoWhile
 {
-    public class Main
+    public class M
     {
         public static void Main()
         {

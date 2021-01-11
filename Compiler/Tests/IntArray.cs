@@ -1,6 +1,6 @@
 namespace IntArray
 {
-    public class Main
+    public class M
     {
         public static void Main()
         {

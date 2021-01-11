@@ -1,6 +1,6 @@
 namespace Sort
 {
-    public class Main
+    public class M
     {
         public void PrintArray(int[] array)
         {
@@ -24,7 +24,7 @@ namespace Sort
             {
                 for (int inner = 0; inner < array.Length - 1; ++inner)
                 {
-                    if (array[inner] > array[inner + 1]) 
+                    if (array[inner] < array[inner + 1]) 
 					{
 						int temp = array[inner];
 						array[inner] = array[inner + 1];
@@ -46,7 +46,7 @@ namespace Sort
             for (int i = 0; i < array.Length; ++i)
                 array[i] = Console.ReadInt();
 
-            var main = new Main;
+            var main = new M;
 
             Console.Write("Array before sorting: ");
             main.PrintArray(array);

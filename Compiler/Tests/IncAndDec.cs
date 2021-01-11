@@ -1,6 +1,6 @@
 namespace IncAndDec
 {
-    public class Main
+    public class M
     {
         public static void Main()
         {

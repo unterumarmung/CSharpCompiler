@@ -7,6 +7,7 @@ struct VarDeclNode final : Node
 {
     TypeNode* VarType{};
     std::string_view Identifier{};
+    std::string_view InitialName{};
     ExprNode* InitExpr{};
 
     DataType AType{};
@@ -20,6 +21,7 @@ struct VarDeclNode final : Node
                 bool deduceType = false)
         : VarType{ varType }
       , Identifier{ identifier }
+      , InitialName{ Identifier }
       , InitExpr{ initExpr }
       , ShouldDeduceType{ deduceType }
     {

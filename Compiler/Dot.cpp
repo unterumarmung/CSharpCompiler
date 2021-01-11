@@ -263,7 +263,7 @@ void ToDot(ExprNode* const node, std::ostream& out)
 
 void ToDot(const VarDeclNode* node, std::ostream& out)
 {
-    auto name = std::string{ node->Name() } + "\\nName = "s + std::string{ node->Identifier };
+    auto name = std::string{ node->Name() } + "\\nName = "s + std::string{ node->InitialName };
     name += "\\nCalculated data type: " + ToString(node->AType);
     out << MakeNode(node->Id, name);
     if (node->VarType != nullptr)

@@ -903,7 +903,7 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
             if (node->Child->AType != DataType::IntType)
             {
                 Errors.push_back("Type '" + ToString(node->Child->AType) + "' is not compatible with operation " +
-                    ToString(node->Type));
+                                 ToString(node->Type));
             }
         }
 

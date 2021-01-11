@@ -206,13 +206,17 @@ ClassAnalyzer::ClassAnalyzer(ClassDeclNode* node, NamespaceDeclNode* namespace_,
                                                 return method->IsConstructor;
                                             });
     if (!hasConstructor)
-        CurrentClass->Members->Add(new MethodDeclNode{
-                                       VisibilityModifier::Public,
-                                       nullptr,
-                                       "<init>",
-                                       MethodArguments::MakeEmpty(),
-                                       StmtSeqNode::MakeEmpty()
-                                   });
+    {
+        auto* constructor = new MethodDeclNode{
+            VisibilityModifier::Public,
+            nullptr,
+            "<init>",
+            MethodArguments::MakeEmpty(),
+            StmtSeqNode::MakeEmpty()
+        };
+        CurrentClass->Constructor = constructor;
+        CurrentClass->Members->Methods.push_back(constructor);
+    }
 }
 
 void ClassAnalyzer::Analyze() { AnalyzeClass(CurrentClass); }
@@ -478,6 +482,17 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
 void ClassAnalyzer::AnalyzeField(FieldDeclNode* field)
 {
     AnalyzeVarDecl(field->VarDecl);
+
+    if (field->VarDecl->InitExpr && !field->InitInConstructor)
+    {
+        auto* init = new ExprNode;
+        init->Type = ExprNode::TypeT::AssignOnField;
+        init->Field = field;
+        init->AssignExpr = field->VarDecl->InitExpr;
+        field->InitInConstructor = init;
+        CurrentClass->Constructor->Body->GetSeq().push_back(new StmtNode(init, false));
+    }
+
     const auto& allFields = CurrentClass->Members->Fields;
     const auto fieldNameCount = std::count_if(allFields.begin(), allFields.end(), [&](auto* other)
     {
@@ -1384,7 +1399,7 @@ Bytes ToBytes(AccessExpr* expr, ClassFile& file)
 
                 const auto fieldRefId = file.Constants.FindFieldRef(field->Class->ToDataType().ToTypename(),
                                                                     field->VarDecl->Identifier,
-                                                                    field->VarDecl->AType.ToTypename());
+                                                                    field->VarDecl->AType.ToDescriptor());
                 append(bytes, ToBytes(fieldRefId));
                 return bytes;
             }
@@ -1704,7 +1719,7 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
         append(bytes, (uint8_t)Command::putfield);
         const auto fieldRefId = file.Constants.FindFieldRef(field->Class->ToDataType().ToTypename(),
                                                             field->VarDecl->Identifier,
-                                                            field->VarDecl->AType.ToTypename());
+                                                            field->VarDecl->AType.ToDescriptor());
         append(bytes, ToBytes(fieldRefId));
         return bytes;
     }

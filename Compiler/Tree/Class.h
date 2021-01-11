@@ -15,6 +15,8 @@ struct FieldDeclNode final : Node
     VarDeclNode* VarDecl;
     ClassDeclNode* Class{};
 
+    ExprNode* InitInConstructor{};
+
     bool IsFinal{};
 
     FieldDeclNode(const VisibilityModifier visibility, VarDeclNode* const varDecl)
@@ -88,7 +90,7 @@ private:
     std::string_view _identifier{};
 public:
     MethodArguments* Arguments{};
-    const StmtSeqNode* Body{};
+    StmtSeqNode* Body{};
     const bool IsStatic{};
     const bool IsConstructor{};
     std::vector<VarDeclNode*> Variables{};
@@ -111,7 +113,7 @@ public:
     }
 
     MethodDeclNode(const VisibilityModifier visibility, const TypeNode* const type, const std::string_view identifier,
-                   MethodArguments* const arguments, const StmtSeqNode* const body, const bool isStatic = false)
+                   MethodArguments* const arguments, StmtSeqNode* const body, const bool isStatic = false)
         : Visibility{ visibility }
       , Type{ type }
       , _identifier{ identifier }
@@ -123,7 +125,7 @@ public:
     }
 
     MethodDeclNode(const VisibilityModifier visibility, const TypeNode* const returnType, const OperatorType operator_,
-                   VarDeclNode* lhsArg, VarDeclNode* rhsArg, const StmtSeqNode* const body)
+                   VarDeclNode* lhsArg, VarDeclNode* rhsArg, StmtSeqNode* const body)
         : Visibility{ visibility }
       , Type{ returnType }
       , Arguments{ new MethodArguments }
@@ -198,6 +200,8 @@ struct ClassDeclNode final : Node
     IdentifierList* ParentType;
     ClassMembersNode* Members;
     NamespaceDeclNode* Namespace{};
+
+    MethodDeclNode* Constructor{};
 
     [[nodiscard]] DataType ToDataType() const;
 

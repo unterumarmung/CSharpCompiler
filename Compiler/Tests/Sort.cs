@@ -6,8 +6,7 @@ namespace Sort
         {
             var Console = new System.Console;
             Console.Write("[");
-            int i = 0;
-            while (i < array.Length)
+            for (int i = 0; i < array.Length; ++i)
             {
                 Console.Write(array[i]);
                 bool isLast = i == array.Length - 1;
@@ -15,18 +14,15 @@ namespace Sort
                 {
                     Console.Write(", ");
                 }
-                i = i + 1;
             }
             Console.WriteLine("]");
         }
 
         public void SortArray(int[] array)
         {
-            int outer = 0;
-            while (outer < array.Length)
+            for (int outer = 0; outer < array.Length; ++outer)
             {
-                int inner = 0;
-                while (inner < array.Length - 1)
+                for (int inner = 0; inner < array.Length - 1; ++inner)
                 {
                     if (array[inner] > array[inner + 1]) 
 					{
@@ -34,9 +30,7 @@ namespace Sort
 						array[inner] = array[inner + 1];
 						array[inner + 1] = temp;
 					}
-					inner = inner + 1;
                 }
-                outer = outer + 1;
             }
         }
 
@@ -49,13 +43,8 @@ namespace Sort
 
             int[] array = new int[length];
 
-            int i = 0;
-            while (i < array.Length)
-            {
+            for (int i = 0; i < array.Length; ++i)
                 array[i] = Console.ReadInt();
-                i = i + 1;
-            }
-            i = 0;
 
             var main = new Main;
 

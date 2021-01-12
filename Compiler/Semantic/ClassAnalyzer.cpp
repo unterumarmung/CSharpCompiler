@@ -463,13 +463,27 @@ void ClassAnalyzer::AnalyzeMethod(MethodDeclNode* method)
     if (method->IsOperatorOverload)
     {
         const auto classDataType = CurrentClass->ToDataType();
-        const auto lhsDataType = method->Arguments->GetSeq()[0]->AType;
-        const auto rhsDataType = method->Arguments->GetSeq()[1]->AType;
 
-        if (classDataType != rhsDataType && classDataType != lhsDataType)
+        if (method->Arguments->GetSeq().size() == 2)
         {
-            Errors.push_back("One of the parameters of a binary operator must be the containing type");
-            return;
+            const auto lhsDataType = method->Arguments->GetSeq()[0]->AType;
+            const auto rhsDataType = method->Arguments->GetSeq()[1]->AType;
+
+            if (classDataType != rhsDataType && classDataType != lhsDataType)
+            {
+                Errors.emplace_back("One of the parameters of a binary operator must be the containing type");
+                return;
+            }
+        }
+        if (method->Arguments->GetSeq().size() == 1)
+        {
+            const auto operandType = method->Arguments->GetSeq()[0]->AType;
+
+            if (classDataType != operandType)
+            {
+                Errors.emplace_back("The parameters of a unary operator must be the containing type");
+                return;
+            }
         }
     }
 
@@ -905,6 +919,7 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
             }
 
             auto* operator_ = *candidates.begin();
+            AnalyzeMethodAccessibility(operator_);
             node->AType = operator_->AReturnType;
             node->OverloadedOperation = operator_;
             return;
@@ -936,6 +951,40 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
     {
         CalculateTypesForExpr(node->Child);
         node->AType = node->Child->AType;
+        const auto operandType = node->AType;
+
+        if (IsOverloadable(node->Type) && operandType.AType == DataType::TypeT::Complex)
+        {
+            auto* class_ = FindClass(operandType);
+            std::set<MethodDeclNode*> candidates;
+            auto const& methods = class_->Members->Methods;
+            std::copy_if(methods.begin(), methods.end(), std::inserter(candidates, candidates.begin()),
+                [&](MethodDeclNode* method)
+                {
+                    return method->IsOperatorOverload
+                        && method->Operator == ToOperatorOverload(node->Type)
+                        && operandType == method->Arguments->GetSeq()[0]->AType;
+                });
+           
+            if (candidates.empty())
+            {
+                Errors.push_back("There is no operator" + ToString(node->Type) + " overload to call with type " +
+                    ToString(operandType));
+                return;
+            }
+            if (candidates.size() > 1)
+            {
+                Errors.push_back("There is more than one operator" + ToString(node->Type) +
+                    " overload to call with types " + ToString(operandType));
+                return;
+            }
+
+            auto* operator_ = *candidates.begin();
+            AnalyzeMethodAccessibility(operator_);
+            node->AType = operator_->AReturnType;
+            node->OverloadedOperation = operator_;
+            return;
+        }
 
         if (node->Type == ExprNode::TypeT::Increment || node->Type == ExprNode::TypeT::Decrement)
         {
@@ -1467,10 +1516,19 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
     if (expr->OverloadedOperation)
     {
         Bytes bytes;
-        const auto leftBytes = ToBytes(expr->Left, file);
-        const auto rightBytes = ToBytes(expr->Right, file);
-        append(bytes, leftBytes);
-        append(bytes, rightBytes);
+
+        if (IsBinary(expr->Type))
+        {
+            const auto leftBytes = ToBytes(expr->Left, file);
+            const auto rightBytes = ToBytes(expr->Right, file);
+            append(bytes, leftBytes);
+            append(bytes, rightBytes);
+        }
+        if (IsUnary(expr->Type))
+        {
+            const auto childBytes = ToBytes(expr->Child, file);
+            append(bytes, childBytes);
+        }
         const auto operatorRef = file.Constants.FindMethodRef(expr->OverloadedOperation->Class->ToDataType().
                                                                     ToTypename(),
                                                               expr->OverloadedOperation->Identifier(),

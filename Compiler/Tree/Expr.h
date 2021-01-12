@@ -155,6 +155,11 @@ inline bool IsOverloadable(const ExprNode::TypeT type)
         case ExprNode::TypeT::NotEqual:
         case ExprNode::TypeT::GreaterOrEqual:
         case ExprNode::TypeT::LessOrEqual:
+        case ExprNode::TypeT::Not:
+        case ExprNode::TypeT::UnaryMinus:
+        case ExprNode::TypeT::UnaryPlus:
+        case ExprNode::TypeT::Increment:
+        case ExprNode::TypeT::Decrement:
             return true;
         default:
             return false;

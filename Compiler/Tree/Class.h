@@ -67,7 +67,12 @@ enum class OperatorType
     Equal,
     NotEqual,
     GreaterOrEqual,
-    LessOrEqual
+    LessOrEqual,
+    Not,
+    UnaryMinus,
+    UnaryPlus,
+    Increment,
+    Decrement
 };
 
 inline OperatorType ToOperatorOverload(const ExprNode::TypeT type)
@@ -96,6 +101,16 @@ inline OperatorType ToOperatorOverload(const ExprNode::TypeT type)
             return OperatorType::GreaterOrEqual;
         case ExprNode::TypeT::LessOrEqual:
             return OperatorType::LessOrEqual;
+        case ExprNode::TypeT::Not:
+            return OperatorType::Not;
+        case ExprNode::TypeT::UnaryMinus:
+            return OperatorType::UnaryMinus;
+        case ExprNode::TypeT::UnaryPlus:
+            return OperatorType::UnaryPlus;
+        case ExprNode::TypeT::Increment:
+            return OperatorType::Increment;
+        case ExprNode::TypeT::Decrement:
+            return OperatorType::Decrement;
     }
     return {};
 }
@@ -156,6 +171,19 @@ public:
         Arguments->Add(rhsArg);
     }
 
+    MethodDeclNode(const VisibilityModifier visibility, const TypeNode* const returnType, const OperatorType operator_,
+        VarDeclNode* arg, StmtSeqNode* const body)
+        : Visibility{ visibility }
+        , Type{ returnType }
+        , Arguments{ new MethodArguments }
+        , Body{ body }
+        , IsStatic{ true }
+        , IsOperatorOverload{ true }
+        , Operator{ operator_ }
+    {
+        Arguments->Add(arg);
+    }
+
     [[nodiscard]] std::string_view Name() const noexcept override { return "MethodDecl"; }
 
     [[nodiscard]] std::string ToDescriptor() const
@@ -202,6 +230,16 @@ public:
                 return "__operator_greater_or_equal";
             case OperatorType::LessOrEqual:
                 return "__operator_less_or_equal";
+            case OperatorType::Not:
+                return "__operator_not";
+            case OperatorType::UnaryMinus:
+                return "__operator_minus";
+            case OperatorType::UnaryPlus:
+                return "__operator_plus";
+            case OperatorType::Increment:
+                return "__operator_increment";
+            case OperatorType::Decrement:
+                return "__operator_decrement";
             default: ;
         }
         return {};

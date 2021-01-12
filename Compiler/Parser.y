@@ -316,7 +316,12 @@ operator_overload:    visibility_modifier STATIC type OPERATOR '+'              
                     | visibility_modifier STATIC type OPERATOR NOT_EQUAL        '(' var_decl ',' var_decl ')' '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::NotEqual,          $7, $9, $12); }
                     | visibility_modifier STATIC type OPERATOR LESS_OR_EQUAL    '(' var_decl ',' var_decl ')' '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::LessOrEqual,       $7, $9, $12); }
                     | visibility_modifier STATIC type OPERATOR GREATER_OR_EQUAL '(' var_decl ',' var_decl ')' '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::GreaterOrEqual,    $7, $9, $12); }
-
+                    | visibility_modifier STATIC type OPERATOR '!'              '(' var_decl ')'              '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::Not,               $7, $10);     }
+                    | visibility_modifier STATIC type OPERATOR DECREMENT        '(' var_decl ')'              '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::Decrement,         $7, $10);     }
+                    | visibility_modifier STATIC type OPERATOR INCREMENT        '(' var_decl ')'              '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::Increment,         $7, $10);     }
+                    | visibility_modifier STATIC type OPERATOR '-'              '(' var_decl ')'              '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::UnaryMinus,        $7, $10);     }
+                    | visibility_modifier STATIC type OPERATOR '+'              '(' var_decl ')'              '{' stmt_seq_optional '}'  { $$ = new MethodDeclNode($1, $3, OperatorType::UnaryPlus,         $7, $10);     }
+;
 method_decl: visibility_modifier type IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'                { $$ = new MethodDeclNode($1, $2, $3, $5, $8); }
            | visibility_modifier VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'             { $$ = new MethodDeclNode($1, nullptr, $3, $5, $8); }
            | visibility_modifier STATIC VOID_KW IDENTIFIER '(' method_arguments_optional ')' '{' stmt_seq_optional '}'      { $$ = new MethodDeclNode($1, nullptr, $4, $6, $9, /* isStatic = */ true); }

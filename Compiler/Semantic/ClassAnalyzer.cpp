@@ -1692,6 +1692,8 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
                 append(bytes, (uint8_t)Command::ineg);
                 break;
             }
+            case ExprNode::TypeT::UnaryPlus:
+                break; /* noop */
             default:
                 throw std::runtime_error{ "Not supported operation " + ToString(expr->Type) };
         }

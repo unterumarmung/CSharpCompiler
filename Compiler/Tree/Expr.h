@@ -29,6 +29,7 @@ struct ExprNode final : Node
         Or,
         Not,
         UnaryMinus,
+        UnaryPlus,
         Null,
         AccessExpr,
         SimpleNew,
@@ -195,6 +196,7 @@ inline bool IsUnary(const ExprNode::TypeT type)
     {
         case ExprNode::TypeT::Not:
         case ExprNode::TypeT::UnaryMinus:
+        case ExprNode::TypeT::UnaryPlus:
         case ExprNode::TypeT::Cast:
         case ExprNode::TypeT::Increment:
         case ExprNode::TypeT::Decrement:
@@ -264,6 +266,8 @@ inline std::string ToString(const ExprNode::TypeT type)
             return "[]=";
         case ExprNode::TypeT::AssignOnField:
             return ".=";
+        case ExprNode::TypeT::UnaryPlus:
+            return "-";
         default: ;
     }
 }

@@ -164,7 +164,7 @@ extern struct Program* treeRoot;
 %left '+' '-'
 %left '*' '/'
 %right '!' INCREMENT DECREMENT
-%left UNARY_MINUS
+%left UNARY_MINUS UNARY_PLUS
 %left '.' ']' '['
 %nonassoc '(' ')'
 
@@ -211,6 +211,7 @@ expr: expr '+' expr                             { $$ = ExprNode::FromBinaryExpre
     | '!' expr                                  { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::Not, $2); }
     | INCREMENT expr                            { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::Increment, $2); }
     | DECREMENT expr                            { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::Decrement, $2); }
+    | '+' expr %prec UNARY_PLUS                 { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::UnaryPlus, $2); }
     | '-' expr %prec UNARY_MINUS                { $$ = ExprNode::FromUnaryExpression(ExprNode::TypeT::UnaryMinus, $2); }
     | NULL_KW                                   { $$ = ExprNode::FromNull(); }
     | access_expr                               { $$ = ExprNode::FromAccessExpr($1); }

@@ -986,7 +986,10 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
             return;
         }
 
-        if (node->Type == ExprNode::TypeT::Increment || node->Type == ExprNode::TypeT::Decrement)
+        if (node->Type == ExprNode::TypeT::Increment
+            || node->Type == ExprNode::TypeT::Decrement
+            || node->Type == ExprNode::TypeT::UnaryPlus
+            || node->Type == ExprNode::TypeT::UnaryMinus)
         {
             if (node->Child->AType != DataType::IntType)
             {

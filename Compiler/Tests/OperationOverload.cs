@@ -85,6 +85,41 @@ namespace OperationOverload
             Console.WriteLine("operator!=(Foo, Foo)");
             return false;
         }
+
+        public static Foo operator+(Foo lhs)
+        {
+            var Console = new System.Console;
+            Console.WriteLine("operator+(Foo)");
+            return new Foo;
+        }
+
+        public static Foo operator-(Foo lhs)
+        {
+            var Console = new System.Console;
+            Console.WriteLine("operator-(Foo)");
+            return new Foo;
+        }
+        
+        public static Foo operator++(Foo lhs)
+        {
+            var Console = new System.Console;
+            Console.WriteLine("operator++(Foo)");
+            return new Foo;
+        }
+
+        public static Foo operator--(Foo lhs)
+        {
+            var Console = new System.Console;
+            Console.WriteLine("operator--(Foo)");
+            return new Foo;
+        }
+
+        public static Foo operator!(Foo lhs)
+        {
+            var Console = new System.Console;
+            Console.WriteLine("operator!(Foo)");
+            return new Foo;
+        }
     }
 
     public class M
@@ -106,6 +141,12 @@ namespace OperationOverload
             var l = foo1 >= foo2;
             var m = foo1 == foo2;
             var n = foo1 != foo2;
+
+            var o = +foo2;
+            var p = -foo2;
+            var r = ++foo2;
+            var s = --foo2;
+            var t = !foo2;
         }
     }
 }

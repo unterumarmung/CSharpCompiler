@@ -268,8 +268,11 @@ inline std::string ToString(const ExprNode::TypeT type)
             return ".=";
         case ExprNode::TypeT::UnaryPlus:
             return "-";
+        case ExprNode::TypeT::ArrayNewWithArguments:
+            return "new[]";
         default: ;
     }
+    return {};
 }
 
 struct ExprSeqNode final : NodeSeq<ExprSeqNode, ExprNode>

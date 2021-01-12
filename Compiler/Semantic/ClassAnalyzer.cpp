@@ -959,23 +959,23 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
             std::set<MethodDeclNode*> candidates;
             auto const& methods = class_->Members->Methods;
             std::copy_if(methods.begin(), methods.end(), std::inserter(candidates, candidates.begin()),
-                [&](MethodDeclNode* method)
-                {
-                    return method->IsOperatorOverload
-                        && method->Operator == ToOperatorOverload(node->Type)
-                        && operandType == method->Arguments->GetSeq()[0]->AType;
-                });
-           
+                         [&](MethodDeclNode* method)
+                         {
+                             return method->IsOperatorOverload
+                                    && method->Operator == ToOperatorOverload(node->Type)
+                                    && operandType == method->Arguments->GetSeq()[0]->AType;
+                         });
+
             if (candidates.empty())
             {
                 Errors.push_back("There is no operator" + ToString(node->Type) + " overload to call with type " +
-                    ToString(operandType));
+                                 ToString(operandType));
                 return;
             }
             if (candidates.size() > 1)
             {
                 Errors.push_back("There is more than one operator" + ToString(node->Type) +
-                    " overload to call with types " + ToString(operandType));
+                                 " overload to call with types " + ToString(operandType));
                 return;
             }
 

@@ -172,17 +172,14 @@ public:
     }
 
     MethodDeclNode(const VisibilityModifier visibility, const TypeNode* const returnType, const OperatorType operator_,
-        VarDeclNode* arg, StmtSeqNode* const body)
+                   VarDeclNode* arg, StmtSeqNode* const body)
         : Visibility{ visibility }
-        , Type{ returnType }
-        , Arguments{ new MethodArguments }
-        , Body{ body }
-        , IsStatic{ true }
-        , IsOperatorOverload{ true }
-        , Operator{ operator_ }
-    {
-        Arguments->Add(arg);
-    }
+      , Type{ returnType }
+      , Arguments{ new MethodArguments }
+      , Body{ body }
+      , IsStatic{ true }
+      , IsOperatorOverload{ true }
+      , Operator{ operator_ } { Arguments->Add(arg); }
 
     [[nodiscard]] std::string_view Name() const noexcept override { return "MethodDecl"; }
 

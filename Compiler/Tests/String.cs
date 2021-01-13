@@ -57,6 +57,8 @@ namespace String
             console.WriteLine(str == str);
             console.Write(@"operator!= with self: ");
             console.WriteLine(str != str);
+            console.Write(@"operator== with self: ");
+            console.WriteLine(str == "Test string");
         }
     }
 }

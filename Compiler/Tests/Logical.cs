@@ -14,15 +14,16 @@ namespace Logical
             Console.WriteLine("Second");
             return true;
         }
+
         public static void Main()
         {
             M m = new M;
-            if (m.First() && m.Second())
+            if (m.Second() && m.First())
             {
                 
             }
 
-            if (m.Second() || m.Second())
+            if (m.Second() || m.First())
             {
                 
             }

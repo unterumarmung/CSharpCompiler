@@ -546,7 +546,15 @@ void ClassAnalyzer::AnalyzeClass(ClassDeclNode* value)
     expr->CallForAllChildren([this](ExprNode* expr)
     {
         AnalyzeAccessExpr(expr->Access);
+        if (expr->Access)
+            expr->Access->CallForAllChildren([this](auto* a) { AnalyzeAccessExpr(a); });
         AnalyzeAccessExpr(expr->ArrayExpr);
+        if (expr->ArrayExpr)
+            expr->ArrayExpr->CallForAllChildren([this](auto* a) { AnalyzeAccessExpr(a); });
+        AnalyzeAccessExpr(expr->ObjectExpr);
+        if (expr->ObjectExpr)
+            expr->ObjectExpr->CallForAllChildren([this](auto* a) { AnalyzeAccessExpr(a); });
+
     });
     CalculateTypesForExpr(changed);
 
@@ -1053,7 +1061,11 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             }
             else
             {
-                type = { DataType::TypeT::Void, {}, true };
+                AnalyzeSimpleMethodCall(access);
+                if (access->ActualMethodCall)
+                    type = access->ActualMethodCall->AReturnType;
+                else
+                    type = { {}, {}, true };
                 access->AType = type;
             }
             return type;
@@ -1128,7 +1140,11 @@ DataType ClassAnalyzer::CalculateTypeForAccessExpr(AccessExpr* access)
             }
             else
             {
-                type = { DataType::TypeT::Void, {}, true };
+                AnalyzeDotMethodCall(access);
+                if (access->ActualMethodCall)
+                    type = access->ActualMethodCall->AReturnType;
+                else
+                    type = { {}, {}, true };
                 access->AType = type;
             }
             return type;
@@ -1679,7 +1695,7 @@ Bytes ToBytes(ExprNode* expr, ClassFile& file)
 
         append(bytes, leftBytes);
 
-        Command command;
+        Command command{};
         Bytes firstJumpBytes;
 
         constexpr auto ifeqLength = 3;

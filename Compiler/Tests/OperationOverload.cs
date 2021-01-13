@@ -147,6 +147,8 @@ namespace OperationOverload
             var r = ++foo2;
             var s = --foo2;
             var t = !foo2;
+
+            var y = 1 + 2;
         }
     }
 }

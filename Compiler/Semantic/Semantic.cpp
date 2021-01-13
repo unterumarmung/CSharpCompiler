@@ -210,6 +210,28 @@ ClassDeclNode* Semantic::CreateStringClass()
         methods.push_back(method);
         return method;
     }();
+    [[maybe_unused]] auto* operatorEqual = [&]
+    {
+        auto* arg1 = new VarDeclNode(new TypeNode(StandardType::String), "lhs", nullptr);
+        auto* arg2 = new VarDeclNode(new TypeNode(StandardType::String), "rhs", nullptr);
+        auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, OperatorType::Equal,
+                                          arg1, arg2, nullptr);
+        method->AReturnType = DataType::BoolType;
+        method->AnalyzeArguments();
+        methods.push_back(method);
+        return method;
+    }();
+    [[maybe_unused]] auto* operatorNotEqual = [&]
+    {
+        auto* arg1 = new VarDeclNode(new TypeNode(StandardType::String), "lhs", nullptr);
+        auto* arg2 = new VarDeclNode(new TypeNode(StandardType::String), "rhs", nullptr);
+        auto* method = new MethodDeclNode(VisibilityModifier::Public, nullptr, OperatorType::NotEqual,
+                                          arg1, arg2, nullptr);
+        method->AReturnType = DataType::BoolType;
+        method->AnalyzeArguments();
+        methods.push_back(method);
+        return method;
+    }();
 
     [[maybe_unused]] auto* lengthField = [&]
     {

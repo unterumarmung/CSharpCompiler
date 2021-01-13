@@ -33,7 +33,7 @@ struct DataType
         Float = 3,
         String = 4,
         Complex = 5,
-        Void = 6
+        Void = 6,
     } AType{};
 
     static const DataType VoidType;

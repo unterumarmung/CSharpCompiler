@@ -1007,6 +1007,11 @@ void ClassAnalyzer::CalculateTypesForExpr(ExprNode* node)
         return;
     }
 
+    if (node->Type == ExprNode::TypeT::Null)
+    {
+        node->AType = { DataType::TypeT::Null };
+        return;
+    }
 
     node->AType.IsUnknown = true;
 }
@@ -1516,6 +1521,12 @@ enum class ArrayType : uint8_t
 
 Bytes ToBytes(ExprNode* expr, ClassFile& file)
 {
+    if (expr->Type == ExprNode::TypeT::Null)
+    {
+        Bytes bytes;
+        append(bytes, (uint8_t)Command::aconst_null);
+        return bytes;
+    }
     if (expr->OverloadedOperation)
     {
         Bytes bytes;

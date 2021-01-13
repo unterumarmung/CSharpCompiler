@@ -34,6 +34,7 @@ struct DataType
         String = 4,
         Complex = 5,
         Void = 6,
+        Null
     } AType{};
 
     static const DataType VoidType;
@@ -49,6 +50,8 @@ struct DataType
 
     bool operator==(const DataType& data) const
     {
+        if (AType == TypeT::Complex && data.AType == TypeT::Null || data.AType == TypeT::Complex && AType == TypeT::Null
+        ) { return true; }
         return AType == data.AType
                && IsUnknown == data.IsUnknown
                && ArrayArity == data.ArrayArity
@@ -144,6 +147,8 @@ inline std::string ToString(const DataType& data)
             return "float";
         case DataType::TypeT::String:
             return "string";
+        case DataType::TypeT::Null:
+            return "null_t";
         case DataType::TypeT::Complex:
         {
             std::string fullName;
